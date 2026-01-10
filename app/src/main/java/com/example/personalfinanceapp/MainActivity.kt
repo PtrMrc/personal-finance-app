@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -66,6 +67,12 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         // We need a coroutine to run database operations in the background
         viewModelScope.launch {
             db.expenseDao().insertExpense(expense)
+        }
+    }
+
+    fun deleteExpense(expense: Expense) {
+        viewModelScope.launch {
+            db.expenseDao().deleteExpense(expense)
         }
     }
 }
@@ -160,30 +167,71 @@ fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(expenseList) { expense ->
-                    ExpenseCard(expense)
-                }
-            }
-            if (showDialog) {
-                ExpenseDialog(
-                    initialTitle = draftTitle,
-                    initialAmount = draftAmount,
-                    initialCategory = draftCategory,
-                    onDismiss = { showDialog = false },
-                    onConfirm = { title, amount, category, desc ->
-                        val newExpense = Expense(
-                            title = title,
-                            amount = amount,
-                            category = category,
-                            description = desc,
-                            date = System.currentTimeMillis(),
-                            isIncome = false
-                        )
-                        viewModel.addExpense(newExpense)
-                        showDialog = false
-                        textInput = "" // Clear the input field only after success
+                items(expenseList, key = { it.id }) { expense ->
+                    // 1. Setup Scope for manual animation (Resetting the swipe)
+                    val scope = rememberCoroutineScope()
+                    var showDeleteDialog by remember { mutableStateOf(false) }
+
+                    // 2. The State
+                    val dismissState = rememberSwipeToDismissBoxState()
+
+                    // 3. OBSERVER: Watch the state. If it swipes, trigger the dialog.
+                    if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+                        LaunchedEffect(Unit) {
+                            showDeleteDialog = true
+                        }
                     }
-                )
+
+                    // 4. The Dialog
+                    if (showDeleteDialog) {
+                        AlertDialog(
+                            onDismissRequest = {
+                                // If they click outside, close dialog AND reset swipe
+                                showDeleteDialog = false
+                                scope.launch { dismissState.reset() }
+                            },
+                            title = { Text("Törlés") },
+                            text = { Text("Biztosan törölni szeretnéd ezt a tételt: ${expense.title}?") },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        viewModel.deleteExpense(expense)
+                                        // No need to reset state, the item is gone!
+                                        showDeleteDialog = false
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                                ) { Text("Törlés") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = {
+                                    // CANCEL: Close dialog AND slide back to normal
+                                    showDeleteDialog = false
+                                    scope.launch { dismissState.reset() }
+                                }) { Text("Mégse") }
+                            }
+                        )
+                    }
+
+                    // 5. The Swipe Box
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        enableDismissFromStartToEnd = false, // Only swipe right-to-left
+                        backgroundContent = {
+                            val color = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) Color.Red else Color.Transparent
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(color, RoundedCornerShape(12.dp))
+                                    .padding(end = 16.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
+                            }
+                        }
+                    ) {
+                        ExpenseCard(expense)
+                    }
+                }
             }
         }
     }
