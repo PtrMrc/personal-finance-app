@@ -30,4 +30,15 @@ interface ExpenseDao {
 
     @Query("SELECT SUM(amount) FROM expense_table WHERE isIncome = 0")
     fun getTotalExpense(): Flow<Double?>
+
+    @Query("SELECT SUM(amount) FROM expense_table")
+    fun getTotalSpending(): Flow<Double?>
+
+    @Query("SELECT category, SUM(amount) as total FROM expense_table GROUP BY category")
+    fun getCategoryBreakdown(): Flow<List<CategoryTuple>>
 }
+
+data class CategoryTuple(
+    @androidx.room.ColumnInfo(name = "category") val category: String,
+    @androidx.room.ColumnInfo(name = "total") val total: Double
+)

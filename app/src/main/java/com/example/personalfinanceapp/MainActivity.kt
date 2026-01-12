@@ -31,6 +31,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.personalfinanceapp.data.AppDatabase
+import com.example.personalfinanceapp.data.CategoryTuple
 import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.ml.ExpenseClassifier
 import kotlinx.coroutines.flow.Flow
@@ -63,6 +64,10 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     private val db = AppDatabase.getDatabase(application)
     val allExpenses: Flow<List<Expense>> = db.expenseDao().getAllExpenses()
 
+    val totalSpending: Flow<Double?> = db.expenseDao().getTotalSpending()
+
+    val categoryBreakdown: Flow<List<CategoryTuple>> = db.expenseDao().getCategoryBreakdown()
+
     fun addExpense(expense: Expense) {
         // We need a coroutine to run database operations in the background
         viewModelScope.launch {
@@ -92,6 +97,9 @@ fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
     var draftTitle by remember { mutableStateOf("") }
     var draftAmount by remember { mutableStateOf("") }
     var draftCategory by remember { mutableStateOf("Egyéb") }
+
+    val total by viewModel.totalSpending.collectAsState(initial = 0.0)
+    val breakdown by viewModel.categoryBreakdown.collectAsState(initial = emptyList())
 
     // Logic: Prepare the draft, but don't save yet
     fun prepareExpense() {
@@ -163,6 +171,8 @@ fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
                 modifier = Modifier.padding(20.dp)
             )
 
+            SummaryCard(total = total, breakdown = breakdown)
+
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -232,6 +242,28 @@ fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
                         ExpenseCard(expense)
                     }
                 }
+            }
+
+            if (showDialog) {
+                ExpenseDialog(
+                    initialTitle = draftTitle,
+                    initialAmount = draftAmount,
+                    initialCategory = draftCategory,
+                    onDismiss = { showDialog = false },
+                    onConfirm = { title, amount, category, desc ->
+                        val newExpense = Expense(
+                            title = title,
+                            amount = amount,
+                            category = category,
+                            description = desc,
+                            date = System.currentTimeMillis(),
+                            isIncome = false
+                        )
+                        viewModel.addExpense(newExpense)
+                        showDialog = false
+                        textInput = ""
+                    }
+                )
             }
         }
     }
@@ -383,6 +415,42 @@ fun ExpenseCard(expense: Expense) {
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
+        }
+    }
+}
+
+@Composable
+fun SummaryCard(total: Double?, breakdown: List<CategoryTuple>) {
+    Card(
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Grand Total
+            Text(text = "Összes költés", style = MaterialTheme.typography.labelMedium)
+            Text(
+                text = "${total?.toInt() ?: 0} Ft",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Breakdown
+            breakdown.forEach { item ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = item.category, fontWeight = FontWeight.SemiBold)
+                    Text(text = "${item.total.toInt()} Ft")
+                }
+            }
         }
     }
 }
