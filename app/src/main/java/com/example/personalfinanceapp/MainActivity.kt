@@ -111,7 +111,8 @@ fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
             .replace(amountVal.toString(), "")
             .trim()
 
-        val predictedCategory = classifier.classify(titleVal) ?: "Egyéb"
+        val englishPrediction = classifier.classify(titleVal) ?: "Other"
+        val predictedCategory = mapToHungarian(englishPrediction)
 
         // Set draft values
         draftTitle = titleVal.ifBlank { "Ismeretlen" }
@@ -285,7 +286,7 @@ fun ExpenseDialog(
 
     // Category Dropdown State
     var expanded by remember { mutableStateOf(false) }
-    val categories = listOf("Food", "Transport", "Entertainment", "Bills", "Health", "Income", "Egyéb")
+    val categories = listOf("Élelmiszer", "Utazás", "Szórakozás", "Számlák", "Egészség", "Bevétel", "Egyéb")
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -402,7 +403,7 @@ fun ExpenseCard(expense: Expense) {
                     Text(text = expense.description, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                 }
                 Text(
-                    text = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(Date(expense.date)),
+                    text = SimpleDateFormat("yyyy. MM. dd. HH:mm", Locale.getDefault()).format(Date(expense.date)),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
@@ -457,22 +458,35 @@ fun SummaryCard(total: Double?, breakdown: List<CategoryTuple>) {
 
 // --- HELPERS ---
 
-// 1. Extracts the first number found in a string (e.g. "Pizza 3000" -> 3000.0)
+// Extracts the first number found in a string (e.g. "Pizza 3000" -> 3000.0)
 fun extractAmount(text: String): Double {
     val regex = Regex("[0-9]+")
     val match = regex.find(text)
     return match?.value?.toDouble() ?: 0.0
 }
 
-// 2. Returns a color based on category name
+// Logic: Translates AI (English) -> UI (Hungarian)
+fun mapToHungarian(englishCategory: String): String {
+    return when(englishCategory) {
+        "Food" -> "Élelmiszer"
+        "Transport" -> "Utazás"
+        "Entertainment" -> "Szórakozás"
+        "Bills" -> "Számlák"
+        "Health" -> "Egészség"
+        "Income" -> "Bevétel"
+        else -> "Egyéb"
+    }
+}
+
+// Returns color based on category names
 fun getColorForCategory(category: String): Color {
     return when(category) {
-        "Food" -> Color(0xFFFF9800)
-        "Transport" -> Color(0xFF2196F3)
-        "Entertainment" -> Color(0xFF9C27B0)
-        "Bills" -> Color(0xFFF44336)
-        "Health" -> Color(0xFF4CAF50)
-        "Income" -> Color(0xFF009688)
+        "Food", "Élelmiszer" -> Color(0xFFFF9800)      // Orange
+        "Transport", "Utazás" -> Color(0xFF2196F3)     // Blue
+        "Entertainment", "Szórakozás" -> Color(0xFF9C27B0) // Purple
+        "Bills", "Számlák" -> Color(0xFFF44336)        // Red
+        "Health", "Egészség" -> Color(0xFF4CAF50)      // Green
+        "Income", "Bevétel" -> Color(0xFF009688)       // Teal
         else -> Color.Gray
     }
 }
