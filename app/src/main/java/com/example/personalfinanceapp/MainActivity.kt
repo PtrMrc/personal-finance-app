@@ -80,6 +80,10 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
             db.expenseDao().deleteExpense(expense)
         }
     }
+
+    suspend fun getCategoryPrediction(title: String): String? {
+        return db.expenseDao().getLastCategoryForTitle(title)
+    }
 }
 
 // --- THE MAIN SCREEN ---
@@ -101,26 +105,39 @@ fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
     val total by viewModel.totalSpending.collectAsState(initial = 0.0)
     val breakdown by viewModel.categoryBreakdown.collectAsState(initial = emptyList())
 
-    // Logic: Prepare the draft, but don't save yet
+    val scope = rememberCoroutineScope()
+
     fun prepareExpense() {
         if (textInput.isBlank()) return
 
         val amountVal = extractAmount(textInput)
-        // Clean the title: remove numbers
         val titleVal = textInput.replace(amountVal.toInt().toString(), "")
             .replace(amountVal.toString(), "")
             .trim()
+            .ifBlank { "Ismeretlen" }
 
-        val englishPrediction = classifier.classify(titleVal) ?: "Other"
-        val predictedCategory = mapToHungarian(englishPrediction)
+        // Launch a coroutine to check the database
+        scope.launch {
+            // 1. Check Memory (Did we save this before?)
+            val historyCategory = viewModel.getCategoryPrediction(titleVal)
 
-        // Set draft values
-        draftTitle = titleVal.ifBlank { "Ismeretlen" }
-        draftAmount = if (amountVal > 0) amountVal.toInt().toString() else ""
-        draftCategory = predictedCategory
+            val finalCategory = if (historyCategory != null) {
+                // Found in history! Use it.
+                historyCategory
+            } else {
+                // Not found. Ask the AI.
+                val englishPrediction = classifier.classify(titleVal) ?: "Other"
+                mapToHungarian(englishPrediction)
+            }
 
-        // Open the popup
-        showDialog = true
+            // Set draft values
+            draftTitle = titleVal
+            draftAmount = if (amountVal > 0) amountVal.toInt().toString() else ""
+            draftCategory = finalCategory
+
+            // Open the popup
+            showDialog = true
+        }
     }
 
     Scaffold(

@@ -36,6 +36,10 @@ interface ExpenseDao {
 
     @Query("SELECT category, SUM(amount) as total FROM expense_table GROUP BY category")
     fun getCategoryBreakdown(): Flow<List<CategoryTuple>>
+
+    // Find the most recent category for a specific title
+    @Query("SELECT category FROM expense_table WHERE title = :title ORDER BY date DESC LIMIT 1")
+    suspend fun getLastCategoryForTitle(title: String): String?
 }
 
 data class CategoryTuple(
