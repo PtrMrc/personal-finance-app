@@ -130,6 +130,8 @@ fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
                 mapToHungarian(englishPrediction)
             }
 
+            val isIncomeCategory = finalCategory == "Bevétel"
+
             // Set draft values
             draftTitle = titleVal
             draftAmount = if (amountVal > 0) amountVal.toInt().toString() else ""
@@ -269,13 +271,16 @@ fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
                     initialCategory = draftCategory,
                     onDismiss = { showDialog = false },
                     onConfirm = { title, amount, category, desc ->
+
+                        val isIncome = (category == "Bevétel")
+
                         val newExpense = Expense(
                             title = title,
                             amount = amount,
                             category = category,
                             description = desc,
                             date = System.currentTimeMillis(),
-                            isIncome = false
+                            isIncome = isIncome
                         )
                         viewModel.addExpense(newExpense)
                         showDialog = false
@@ -301,13 +306,15 @@ fun ExpenseDialog(
     var category by remember { mutableStateOf(initialCategory) }
     var description by remember { mutableStateOf("") }
 
+    var showError by remember { mutableStateOf(false) }
+
     // Category Dropdown State
     var expanded by remember { mutableStateOf(false) }
     val categories = listOf("Élelmiszer", "Utazás", "Szórakozás", "Számlák", "Egészség", "Bevétel", "Egyéb")
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Új Kiadás") },
+        title = { Text("Új Tétel") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Title
@@ -315,7 +322,8 @@ fun ExpenseDialog(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Megnevezés") },
-                    singleLine = true
+                    singleLine = true,
+                    isError = showError && title.isBlank()
                 )
 
                 // Amount
@@ -324,8 +332,17 @@ fun ExpenseDialog(
                     onValueChange = { amount = it },
                     label = { Text("Összeg (Ft)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true
+                    singleLine = true,
+                    isError = showError && amount.toDoubleOrNull() == null
                 )
+
+                if (showError) {
+                    Text(
+                        text = "Kérlek add meg a nevet és az összeget!",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
 
                 // Category Dropdown
                 Box {
@@ -370,6 +387,8 @@ fun ExpenseDialog(
                     val amountDouble = amount.toDoubleOrNull() ?: 0.0
                     if (title.isNotBlank() && amountDouble > 0) {
                         onConfirm(title, amountDouble, category, description)
+                    } else {
+                        showError = true
                     }
                 }
             ) {
@@ -428,8 +447,8 @@ fun ExpenseCard(expense: Expense) {
 
             // Amount
             Text(
-                text = "-${expense.amount.toInt()} Ft",
-                color = Color(0xFFD32F2F), // Red for expense
+                text = if (expense.isIncome) "+${expense.amount.toInt()} Ft" else "-${expense.amount.toInt()} Ft",
+                color = if (expense.isIncome) Color(0xFF4CAF50) else Color(0xFFD32F2F),
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
@@ -439,6 +458,9 @@ fun ExpenseCard(expense: Expense) {
 
 @Composable
 fun SummaryCard(total: Double?, breakdown: List<CategoryTuple>) {
+    val balance = total ?: 0.0
+    val balanceColor = if (balance >= 0) Color(0xFF4CAF50) else Color(0xFFD32F2F)
+
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
@@ -448,11 +470,12 @@ fun SummaryCard(total: Double?, breakdown: List<CategoryTuple>) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Grand Total
-            Text(text = "Összes költés", style = MaterialTheme.typography.labelMedium)
+            Text(text = "Egyenleg", style = MaterialTheme.typography.labelMedium)
             Text(
                 text = "${total?.toInt() ?: 0} Ft",
                 style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = balanceColor
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -461,12 +484,15 @@ fun SummaryCard(total: Double?, breakdown: List<CategoryTuple>) {
 
             // Breakdown
             breakdown.forEach { item ->
+                val isIncome = (item.category == "Bevétel")
+                val amountColor = if (isIncome) Color(0xFF4CAF50) else Color(0xFFD32F2F)
+
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(text = item.category, fontWeight = FontWeight.SemiBold)
-                    Text(text = "${item.total.toInt()} Ft")
+                    Text(text = "${item.total.toInt()} Ft", color = amountColor)
                 }
             }
         }

@@ -31,7 +31,7 @@ interface ExpenseDao {
     @Query("SELECT SUM(amount) FROM expense_table WHERE isIncome = 0")
     fun getTotalExpense(): Flow<Double?>
 
-    @Query("SELECT SUM(amount) FROM expense_table")
+    @Query("SELECT SUM(CASE WHEN isIncome = 1 THEN amount ELSE -amount END) FROM expense_table")
     fun getTotalSpending(): Flow<Double?>
 
     @Query("SELECT category, SUM(amount) as total FROM expense_table GROUP BY category")
