@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,11 +35,14 @@ import com.example.personalfinanceapp.data.AppDatabase
 import com.example.personalfinanceapp.data.CategoryTuple
 import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.ml.ExpenseClassifier
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.text.NumberFormat
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,6 +88,12 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     suspend fun getCategoryPrediction(title: String): String? {
         return db.expenseDao().getLastCategoryForTitle(title)
     }
+
+    fun updateExpense(expense: Expense) {
+        viewModelScope.launch {
+            db.expenseDao().updateExpense(expense)
+        }
+    }
 }
 
 // --- THE MAIN SCREEN ---
@@ -96,18 +106,16 @@ fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
     // UI State
     var textInput by remember { mutableStateOf("") }
 
-    // Dialog State ---
     var showDialog by remember { mutableStateOf(false) }
-    var draftTitle by remember { mutableStateOf("") }
-    var draftAmount by remember { mutableStateOf("") }
-    var draftCategory by remember { mutableStateOf("Egyéb") }
+    var activeExpense by remember { mutableStateOf<Expense?>(null) }
 
     val total by viewModel.totalSpending.collectAsState(initial = 0.0)
     val breakdown by viewModel.categoryBreakdown.collectAsState(initial = emptyList())
 
     val scope = rememberCoroutineScope()
 
-    fun prepareExpense() {
+    // 1. Logic for NEW Item
+    fun openNewDraft() {
         if (textInput.isBlank()) return
 
         val amountVal = extractAmount(textInput)
@@ -116,30 +124,36 @@ fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
             .trim()
             .ifBlank { "Ismeretlen" }
 
-        // Launch a coroutine to check the database
         scope.launch {
-            // 1. Check Memory (Did we save this before?)
+            // Check Memory
             val historyCategory = viewModel.getCategoryPrediction(titleVal)
 
+            // Decide Category
             val finalCategory = if (historyCategory != null) {
-                // Found in history! Use it.
                 historyCategory
             } else {
-                // Not found. Ask the AI.
                 val englishPrediction = classifier.classify(titleVal) ?: "Other"
                 mapToHungarian(englishPrediction)
             }
 
-            val isIncomeCategory = finalCategory == "Bevétel"
-
-            // Set draft values
-            draftTitle = titleVal
-            draftAmount = if (amountVal > 0) amountVal.toInt().toString() else ""
-            draftCategory = finalCategory
-
-            // Open the popup
+            // Create the "Draft" Object (ID is 0 because it's new)
+            activeExpense = Expense(
+                id = 0,
+                title = titleVal,
+                amount = if (amountVal > 0) amountVal else 0.0,
+                category = finalCategory,
+                description = "",
+                date = System.currentTimeMillis(),
+                isIncome = (finalCategory == "Bevétel")
+            )
             showDialog = true
         }
+    }
+
+    // 2. Logic for EDITING an Existing Item
+    fun openEditDraft(expense: Expense) {
+        activeExpense = expense // Load the existing item
+        showDialog = true
     }
 
     Scaffold(
@@ -147,31 +161,58 @@ fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
         bottomBar = {
             // INPUT AREA
             Surface(
-                tonalElevation = 8.dp,
+                tonalElevation = 12.dp,
+                shadowElevation = 12.dp,
                 color = Color.White,
-                modifier = Modifier.padding(bottom = 16.dp)
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp) // Rounded top corners looks modern
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(16.dp)
+                        .padding(bottom = 8.dp)
                 ) {
-                    OutlinedTextField(
-                        value = textInput,
-                        onValueChange = { textInput = it },
-                        label = { Text("pl. Tesco 3500") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                    // 1. Small Header Title
+                    Text(
+                        text = "Új tétel rögzítése",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = { prepareExpense() },
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(12.dp)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Draft")
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // 2. The Smart Input Field
+                        OutlinedTextField(
+                            value = textInput,
+                            onValueChange = { textInput = it },
+                            // Label floats up when you type
+                            label = { Text("Mit vettél?") },
+                            // Placeholder stays until you type
+                            placeholder = { Text("pl. Tesco 3500", color = Color.Gray) },
+                            leadingIcon = {
+                                Icon(Icons.Default.Edit, contentDescription = null, tint = Color.Gray)
+                            },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = Color.LightGray
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // 3. The Send Button
+                        Button(
+                            onClick = { openNewDraft() },
+                            shape = CircleShape,
+                            contentPadding = PaddingValues(16.dp),
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Rögzítés")
+                        }
                     }
                 }
             }
@@ -259,30 +300,45 @@ fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
                             }
                         }
                     ) {
-                        ExpenseCard(expense)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { openEditDraft(expense) }
+                        ) {
+                            ExpenseCard(expense)
+                        }
                     }
                 }
             }
 
-            if (showDialog) {
+            if (showDialog && activeExpense != null) {
                 ExpenseDialog(
-                    initialTitle = draftTitle,
-                    initialAmount = draftAmount,
-                    initialCategory = draftCategory,
+                    initialTitle = activeExpense!!.title,
+                    initialAmount = if (activeExpense!!.amount > 0) activeExpense!!.amount.toInt().toString() else "",
+                    initialCategory = activeExpense!!.category,
+                    initialDescription = activeExpense!!.description ?: "",
                     onDismiss = { showDialog = false },
                     onConfirm = { title, amount, category, desc ->
-
                         val isIncome = (category == "Bevétel")
 
-                        val newExpense = Expense(
+                        // Update the active object with the new text from the inputs
+                        val finalExpense = activeExpense!!.copy(
                             title = title,
                             amount = amount,
                             category = category,
                             description = desc,
-                            date = System.currentTimeMillis(),
                             isIncome = isIncome
+                            // We keep the original ID and Date!
                         )
-                        viewModel.addExpense(newExpense)
+
+                        if (finalExpense.id == 0) {
+                            // ID is 0, so it's NEW -> Insert
+                            viewModel.addExpense(finalExpense)
+                        } else {
+                            // ID is not 0, so it EXISTS -> Update
+                            viewModel.updateExpense(finalExpense)
+                        }
+
                         showDialog = false
                         textInput = ""
                     }
@@ -298,13 +354,14 @@ fun ExpenseDialog(
     initialTitle: String,
     initialAmount: String,
     initialCategory: String,
+    initialDescription: String,
     onDismiss: () -> Unit,
     onConfirm: (String, Double, String, String) -> Unit
 ) {
     var title by remember { mutableStateOf(initialTitle) }
     var amount by remember { mutableStateOf(initialAmount) }
     var category by remember { mutableStateOf(initialCategory) }
-    var description by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf(initialDescription) }
 
     var showError by remember { mutableStateOf(false) }
 
@@ -447,7 +504,7 @@ fun ExpenseCard(expense: Expense) {
 
             // Amount
             Text(
-                text = if (expense.isIncome) "+${expense.amount.toInt()} Ft" else "-${expense.amount.toInt()} Ft",
+                text = if (expense.isIncome) "+${formatAmount(expense.amount)} Ft" else "-${formatAmount(expense.amount)} Ft",
                 color = if (expense.isIncome) Color(0xFF4CAF50) else Color(0xFFD32F2F),
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
@@ -472,7 +529,7 @@ fun SummaryCard(total: Double?, breakdown: List<CategoryTuple>) {
             // Grand Total
             Text(text = "Egyenleg", style = MaterialTheme.typography.labelMedium)
             Text(
-                text = "${total?.toInt() ?: 0} Ft",
+                text = "${formatAmount(total ?: 0.0)} Ft",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = balanceColor
@@ -492,7 +549,7 @@ fun SummaryCard(total: Double?, breakdown: List<CategoryTuple>) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(text = item.category, fontWeight = FontWeight.SemiBold)
-                    Text(text = "${item.total.toInt()} Ft", color = amountColor)
+                    Text(text = "${formatAmount(item.total)} Ft", color = amountColor)
                 }
             }
         }
@@ -532,4 +589,16 @@ fun getColorForCategory(category: String): Color {
         "Income", "Bevétel" -> Color(0xFF009688)       // Teal
         else -> Color.Gray
     }
+}
+
+// Helper: Formats 12345.0 -> "12 345"
+fun formatAmount(amount: Double): String {
+    val formatter = NumberFormat.getNumberInstance(Locale("hu", "HU")) // Hungarian format uses spaces/dots
+    formatter.maximumFractionDigits = 0
+    return formatter.format(amount)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+suspend fun SwipeToDismissBoxState.reset() {
+    snapTo(SwipeToDismissBoxValue.Settled)
 }

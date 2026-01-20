@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -17,6 +18,9 @@ interface ExpenseDao {
     // Delete an item
     @Delete
     suspend fun deleteExpense(expense: Expense)
+
+    @Update
+    suspend fun updateExpense(expense: Expense)
 
     // Get all items sorted by Date (Newest first)
     // We use Flow<> so the UI updates automatically when data changes
