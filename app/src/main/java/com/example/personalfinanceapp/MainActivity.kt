@@ -16,7 +16,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -43,11 +46,26 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.text.NumberFormat
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.ExistingPeriodicWorkPolicy
+import com.example.personalfinanceapp.data.Frequency
+import com.example.personalfinanceapp.data.RecurringItem
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val workRequest = PeriodicWorkRequestBuilder<RecurringWorker>(1, TimeUnit.DAYS).build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "DailySubscriptionCheck",
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
+
         setContent {
             MaterialTheme(
                 colorScheme = lightColorScheme(
@@ -94,11 +112,31 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
             db.expenseDao().updateExpense(expense)
         }
     }
+
+    // --- RECURRING / SUBSCRIPTION LOGIC ---
+    // 1. Get the list
+    val allRecurringItems: Flow<List<RecurringItem>> = db.recurringDao().getAllRecurringItemsFlow()
+
+    // 2. Add new rule
+    fun addRecurringItem(item: RecurringItem) {
+        viewModelScope.launch {
+            db.recurringDao().insertRecurringItem(item)
+        }
+    }
+
+    // 3. Delete rule
+    fun deleteRecurringItem(item: RecurringItem) {
+        viewModelScope.launch {
+            db.recurringDao().deleteRecurringItem(item.id)
+        }
+    }
 }
 
 // --- THE MAIN SCREEN ---
 @Composable
 fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
+    var currentScreen by remember { mutableStateOf("Home") } // "Home" or "Recurring"
+
     val context = LocalContext.current
     val classifier = remember { ExpenseClassifier(context) } // The AI Brain
     val expenseList by viewModel.allExpenses.collectAsState(initial = emptyList())
@@ -155,194 +193,222 @@ fun MainScreen(viewModel: ExpenseViewModel = viewModel()) {
         activeExpense = expense // Load the existing item
         showDialog = true
     }
-
-    Scaffold(
-        modifier = Modifier.fillMaxSize().imePadding(), // Pushes up when keyboard opens
-        bottomBar = {
-            // INPUT AREA
-            Surface(
-                tonalElevation = 12.dp,
-                shadowElevation = 12.dp,
-                color = Color.White,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp) // Rounded top corners looks modern
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .padding(bottom = 8.dp)
+    if (currentScreen == "Recurring") {
+        RecurringScreen(viewModel = viewModel, onBack = { currentScreen = "Home" })
+    } else {
+        Scaffold(
+            modifier = Modifier.fillMaxSize().imePadding(), // Pushes up when keyboard opens
+            bottomBar = {
+                // INPUT AREA
+                Surface(
+                    tonalElevation = 12.dp,
+                    shadowElevation = 12.dp,
+                    color = Color.White,
+                    shape = RoundedCornerShape(
+                        topStart = 24.dp,
+                        topEnd = 24.dp
+                    ) // Rounded top corners looks modern
                 ) {
-                    // 1. Small Header Title
-                    Text(
-                        text = "Új tétel rögzítése",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
-                    )
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // 2. The Smart Input Field
-                        OutlinedTextField(
-                            value = textInput,
-                            onValueChange = { textInput = it },
-                            // Label floats up when you type
-                            label = { Text("Mit vettél?") },
-                            // Placeholder stays until you type
-                            placeholder = { Text("pl. Tesco 3500", color = Color.Gray) },
-                            leadingIcon = {
-                                Icon(Icons.Default.Edit, contentDescription = null, tint = Color.Gray)
-                            },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = Color.LightGray
-                            )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .padding(bottom = 8.dp)
+                    ) {
+                        // 1. Small Header Title
+                        Text(
+                            text = "Új tétel rögzítése",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
                         )
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // 2. The Smart Input Field
+                            OutlinedTextField(
+                                value = textInput,
+                                onValueChange = { textInput = it },
+                                // Label floats up when you type
+                                label = { Text("Mit vettél?") },
+                                // Placeholder stays until you type
+                                placeholder = { Text("pl. Tesco 3500", color = Color.Gray) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = null,
+                                        tint = Color.Gray
+                                    )
+                                },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = Color.LightGray
+                                )
+                            )
 
-                        // 3. The Send Button
-                        Button(
-                            onClick = { openNewDraft() },
-                            shape = CircleShape,
-                            contentPadding = PaddingValues(16.dp),
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Rögzítés")
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            // 3. The Send Button
+                            Button(
+                                onClick = { openNewDraft() },
+                                shape = CircleShape,
+                                contentPadding = PaddingValues(16.dp),
+                                modifier = Modifier.size(56.dp)
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Rögzítés"
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
-    ) { innerPadding ->
-        // LIST AREA
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .background(Color(0xFFF5F5F5))
-        ) {
-            Text(
-                text = "Kiadások",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(20.dp)
-            )
-
-            SummaryCard(total = total, breakdown = breakdown)
-
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) { innerPadding ->
+            // LIST AREA
+            Column(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+                    .background(Color(0xFFF5F5F5))
             ) {
-                items(expenseList, key = { it.id }) { expense ->
-                    // 1. Setup Scope for manual animation (Resetting the swipe)
-                    val scope = rememberCoroutineScope()
-                    var showDeleteDialog by remember { mutableStateOf(false) }
-
-                    // 2. The State
-                    val dismissState = rememberSwipeToDismissBoxState()
-
-                    // 3. OBSERVER: Watch the state. If it swipes, trigger the dialog.
-                    if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-                        LaunchedEffect(Unit) {
-                            showDeleteDialog = true
-                        }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Kiadások",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    // The Button to open Recurring Screen
+                    IconButton(onClick = { currentScreen = "Recurring" }) {
+                        Icon(Icons.Default.DateRange, contentDescription = "Subscriptions")
                     }
+                }
 
-                    // 4. The Dialog
-                    if (showDeleteDialog) {
-                        AlertDialog(
-                            onDismissRequest = {
-                                // If they click outside, close dialog AND reset swipe
-                                showDeleteDialog = false
-                                scope.launch { dismissState.reset() }
-                            },
-                            title = { Text("Törlés") },
-                            text = { Text("Biztosan törölni szeretnéd ezt a tételt: ${expense.title}?") },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        viewModel.deleteExpense(expense)
-                                        // No need to reset state, the item is gone!
-                                        showDeleteDialog = false
-                                    },
-                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
-                                ) { Text("Törlés") }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = {
-                                    // CANCEL: Close dialog AND slide back to normal
+                SummaryCard(total = total, breakdown = breakdown)
+
+                LazyColumn(
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(expenseList, key = { it.id }) { expense ->
+                        // 1. Setup Scope for manual animation (Resetting the swipe)
+                        val scope = rememberCoroutineScope()
+                        var showDeleteDialog by remember { mutableStateOf(false) }
+
+                        // 2. The State
+                        val dismissState = rememberSwipeToDismissBoxState()
+
+                        // 3. OBSERVER: Watch the state. If it swipes, trigger the dialog.
+                        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+                            LaunchedEffect(Unit) {
+                                showDeleteDialog = true
+                            }
+                        }
+
+                        // 4. The Dialog
+                        if (showDeleteDialog) {
+                            AlertDialog(
+                                onDismissRequest = {
+                                    // If they click outside, close dialog AND reset swipe
                                     showDeleteDialog = false
                                     scope.launch { dismissState.reset() }
-                                }) { Text("Mégse") }
-                            }
-                        )
-                    }
+                                },
+                                title = { Text("Törlés") },
+                                text = { Text("Biztosan törölni szeretnéd ezt a tételt: ${expense.title}?") },
+                                confirmButton = {
+                                    TextButton(
+                                        onClick = {
+                                            viewModel.deleteExpense(expense)
+                                            // No need to reset state, the item is gone!
+                                            showDeleteDialog = false
+                                        },
+                                        colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                                    ) { Text("Törlés") }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = {
+                                        // CANCEL: Close dialog AND slide back to normal
+                                        showDeleteDialog = false
+                                        scope.launch { dismissState.reset() }
+                                    }) { Text("Mégse") }
+                                }
+                            )
+                        }
 
-                    // 5. The Swipe Box
-                    SwipeToDismissBox(
-                        state = dismissState,
-                        enableDismissFromStartToEnd = false, // Only swipe right-to-left
-                        backgroundContent = {
-                            val color = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) Color.Red else Color.Transparent
+                        // 5. The Swipe Box
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            enableDismissFromStartToEnd = false, // Only swipe right-to-left
+                            backgroundContent = {
+                                val color =
+                                    if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) Color.Red else Color.Transparent
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(color, RoundedCornerShape(12.dp))
+                                        .padding(end = 16.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = Color.White
+                                    )
+                                }
+                            }
+                        ) {
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(color, RoundedCornerShape(12.dp))
-                                    .padding(end = 16.dp),
-                                contentAlignment = Alignment.CenterEnd
+                                    .fillMaxWidth()
+                                    .clickable { openEditDraft(expense) }
                             ) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
+                                ExpenseCard(expense)
                             }
-                        }
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { openEditDraft(expense) }
-                        ) {
-                            ExpenseCard(expense)
                         }
                     }
                 }
-            }
 
-            if (showDialog && activeExpense != null) {
-                ExpenseDialog(
-                    initialTitle = activeExpense!!.title,
-                    initialAmount = if (activeExpense!!.amount > 0) activeExpense!!.amount.toInt().toString() else "",
-                    initialCategory = activeExpense!!.category,
-                    initialDescription = activeExpense!!.description ?: "",
-                    onDismiss = { showDialog = false },
-                    onConfirm = { title, amount, category, desc ->
-                        val isIncome = (category == "Bevétel")
+                if (showDialog && activeExpense != null) {
+                    ExpenseDialog(
+                        initialTitle = activeExpense!!.title,
+                        initialAmount = if (activeExpense!!.amount > 0) activeExpense!!.amount.toInt()
+                            .toString() else "",
+                        initialCategory = activeExpense!!.category,
+                        initialDescription = activeExpense!!.description ?: "",
+                        onDismiss = { showDialog = false },
+                        onConfirm = { title, amount, category, desc ->
+                            val isIncome = (category == "Bevétel")
 
-                        // Update the active object with the new text from the inputs
-                        val finalExpense = activeExpense!!.copy(
-                            title = title,
-                            amount = amount,
-                            category = category,
-                            description = desc,
-                            isIncome = isIncome
-                            // We keep the original ID and Date!
-                        )
+                            // Update the active object with the new text from the inputs
+                            val finalExpense = activeExpense!!.copy(
+                                title = title,
+                                amount = amount,
+                                category = category,
+                                description = desc,
+                                isIncome = isIncome
+                                // We keep the original ID and Date!
+                            )
 
-                        if (finalExpense.id == 0) {
-                            // ID is 0, so it's NEW -> Insert
-                            viewModel.addExpense(finalExpense)
-                        } else {
-                            // ID is not 0, so it EXISTS -> Update
-                            viewModel.updateExpense(finalExpense)
+                            if (finalExpense.id == 0) {
+                                // ID is 0, so it's NEW -> Insert
+                                viewModel.addExpense(finalExpense)
+                            } else {
+                                // ID is not 0, so it EXISTS -> Update
+                                viewModel.updateExpense(finalExpense)
+                            }
+
+                            showDialog = false
+                            textInput = ""
                         }
-
-                        showDialog = false
-                        textInput = ""
-                    }
-                )
+                    )
+                }
             }
         }
     }
@@ -601,4 +667,171 @@ fun formatAmount(amount: Double): String {
 @OptIn(ExperimentalMaterial3Api::class)
 suspend fun SwipeToDismissBoxState.reset() {
     snapTo(SwipeToDismissBoxValue.Settled)
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RecurringScreen(
+    viewModel: ExpenseViewModel,
+    onBack: () -> Unit
+) {
+    val items by viewModel.allRecurringItems.collectAsState(initial = emptyList())
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Állandó tételek") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showAddDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Add")
+            }
+        }
+    ) { padding ->
+        LazyColumn(
+            contentPadding = padding,
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(items) { item ->
+                RecurringItemCard(item, onDelete = { viewModel.deleteRecurringItem(item) })
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        AddRecurringDialog(
+            onDismiss = { showAddDialog = false },
+            onConfirm = { title, amount, isIncome, freq, day ->
+                val newItem = RecurringItem(
+                    title = title,
+                    amount = amount,
+                    category = if (isIncome) "Bevétel" else "Egyéb", // Simplified category logic
+                    isIncome = isIncome,
+                    frequency = freq,
+                    dayOfMonth = day
+                )
+                viewModel.addRecurringItem(newItem)
+                showAddDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+fun RecurringItemCard(item: RecurringItem, onDelete: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(text = item.title, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "${item.frequency} • Nap: ${item.dayOfMonth}.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "${formatAmount(item.amount)} Ft",
+                    fontWeight = FontWeight.Bold,
+                    color = if (item.isIncome) Color(0xFF4CAF50) else Color.Red
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddRecurringDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, Double, Boolean, Frequency, Int) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var amount by remember { mutableStateOf("") }
+    var isIncome by remember { mutableStateOf(false) } // Default to Expense
+    var day by remember { mutableStateOf("1") }
+
+    // Frequency Dropdown
+    var freqExpanded by remember { mutableStateOf(false) }
+    var selectedFreq by remember { mutableStateOf(Frequency.MONTHLY) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Új Ismétlődő Tétel") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Megnevezés (pl. Netflix)") })
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it },
+                    label = { Text("Összeg") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+
+                // Day Input (Simple number field 1-31)
+                OutlinedTextField(
+                    value = day,
+                    onValueChange = { if (it.length <= 2) day = it },
+                    label = { Text("Nap (1-31)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+
+                // Income Switch
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = isIncome, onCheckedChange = { isIncome = it })
+                    Text("Ez Bevétel (pl. Fizetés)?")
+                }
+
+                // Frequency Dropdown
+                Box {
+                    OutlinedTextField(
+                        value = when(selectedFreq) {
+                            Frequency.MONTHLY -> "Havonta"
+                            Frequency.QUARTERLY -> "Negyedévente"
+                            Frequency.YEARLY -> "Évente"
+                        },
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Gyakoriság") },
+                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.clickable { freqExpanded = true }) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    DropdownMenu(expanded = freqExpanded, onDismissRequest = { freqExpanded = false }) {
+                        DropdownMenuItem(text = { Text("Havonta") }, onClick = { selectedFreq = Frequency.MONTHLY; freqExpanded = false })
+                        DropdownMenuItem(text = { Text("Negyedévente") }, onClick = { selectedFreq = Frequency.QUARTERLY; freqExpanded = false })
+                        DropdownMenuItem(text = { Text("Évente") }, onClick = { selectedFreq = Frequency.YEARLY; freqExpanded = false })
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val amt = amount.toDoubleOrNull() ?: 0.0
+                val dayInt = day.toIntOrNull() ?: 1
+                if (title.isNotBlank() && amt > 0) {
+                    onConfirm(title, amt, isIncome, selectedFreq, dayInt)
+                }
+            }) { Text("Mentés") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Mégse") } }
+    )
 }

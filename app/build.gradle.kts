@@ -70,4 +70,7 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
+
+    // WorkManager (Background Tasks)
+    implementation(libs.androidx.work.runtime.ktx)
 }
