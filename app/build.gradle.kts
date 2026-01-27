@@ -73,4 +73,6 @@ dependencies {
 
     // WorkManager (Background Tasks)
     implementation(libs.androidx.work.runtime.ktx)
+
+    implementation(libs.androidx.navigation.compose)
 }
