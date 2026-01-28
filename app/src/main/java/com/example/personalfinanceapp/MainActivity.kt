@@ -1,6 +1,9 @@
 package com.example.personalfinanceapp
 
-import android.app.Application
+import com.example.personalfinanceapp.presentation.home.HomeViewModel
+import com.example.personalfinanceapp.presentation.home.HomeScreen
+import com.example.personalfinanceapp.presentation.recurring.RecurringScreen
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -29,8 +32,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -39,13 +40,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.example.personalfinanceapp.data.AppDatabase
-import com.example.personalfinanceapp.data.CategoryTuple
 import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.data.Frequency
 import com.example.personalfinanceapp.data.RecurringItem
 import com.example.personalfinanceapp.ml.ExpenseClassifier
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -75,49 +73,6 @@ class MainActivity : ComponentActivity() {
             ) {
                 MainApp()
             }
-        }
-    }
-}
-
-// --- VIEWMODEL ---
-class ExpenseViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = AppDatabase.getDatabase(application)
-    val allExpenses: Flow<List<Expense>> = db.expenseDao().getAllExpenses()
-    val totalSpending: Flow<Double?> = db.expenseDao().getTotalSpending()
-    val categoryBreakdown: Flow<List<CategoryTuple>> = db.expenseDao().getCategoryBreakdown()
-    val allRecurringItems: Flow<List<RecurringItem>> = db.recurringDao().getAllRecurringItemsFlow()
-
-    fun addExpense(expense: Expense) {
-        viewModelScope.launch {
-            db.expenseDao().insertExpense(expense)
-        }
-    }
-
-    fun deleteExpense(expense: Expense) {
-        viewModelScope.launch {
-            db.expenseDao().deleteExpense(expense)
-        }
-    }
-
-    suspend fun getCategoryPrediction(title: String): String? {
-        return db.expenseDao().getLastCategoryForTitle(title)
-    }
-
-    fun updateExpense(expense: Expense) {
-        viewModelScope.launch {
-            db.expenseDao().updateExpense(expense)
-        }
-    }
-
-    fun addRecurringItem(item: RecurringItem) {
-        viewModelScope.launch {
-            db.recurringDao().insertRecurringItem(item)
-        }
-    }
-
-    fun deleteRecurringItem(item: RecurringItem) {
-        viewModelScope.launch {
-            db.recurringDao().deleteRecurringItem(item.id)
         }
     }
 }
@@ -195,232 +150,6 @@ fun MainApp() {
 }
 
 @Composable
-fun HomeScreen(viewModel: ExpenseViewModel) {
-    val context = LocalContext.current
-    val classifier = remember { ExpenseClassifier(context) }
-    val expenseList by viewModel.allExpenses.collectAsState(initial = emptyList())
-    val total by viewModel.totalSpending.collectAsState(initial = 0.0)
-
-    val recentExpenses = expenseList.take(10)
-
-    var textInput by remember { mutableStateOf("") }
-    var showDialog by remember { mutableStateOf(false) }
-    var activeExpense by remember { mutableStateOf<Expense?>(null) }
-    val scope = rememberCoroutineScope()
-
-    fun openNewDraft() {
-        if (textInput.isBlank()) return
-        val amountVal = extractAmount(textInput)
-        val titleVal = textInput.replace(amountVal.toInt().toString(), "")
-            .replace(amountVal.toString(), "").trim().ifBlank { "Ismeretlen" }
-
-        scope.launch {
-            val historyCategory = viewModel.getCategoryPrediction(titleVal)
-            val finalCategory = historyCategory ?: mapToHungarian(classifier.classify(titleVal) ?: "Other")
-
-            activeExpense = Expense(
-                id = 0, title = titleVal, amount = if (amountVal > 0) amountVal else 0.0,
-                category = finalCategory, description = "", date = System.currentTimeMillis(),
-                isIncome = (finalCategory == "Bevétel")
-            )
-            showDialog = true
-        }
-    }
-
-    fun openEditDraft(expense: Expense) {
-        activeExpense = expense
-        showDialog = true
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Default.Person,
-                "Profile",
-                tint = Color.Gray,
-                modifier = Modifier.size(28.dp)
-            )
-
-            Surface(
-                color = Color(0xFFF0F0F0),
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp)
-                    .height(40.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Search,
-                        null,
-                        tint = Color.Gray,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Keresés...", color = Color.Gray, fontSize = 14.sp)
-                }
-            }
-
-            Icon(
-                Icons.Default.Settings,
-                "Settings",
-                tint = Color.Gray,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            item {
-                BalanceCardWithSparkline(total = total ?: 0.0)
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = "Legutóbbi tranzakciók",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.DarkGray
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-
-            items(recentExpenses, key = { it.id }) { expense ->
-                val dismissScope = rememberCoroutineScope()
-                var showDeleteDialog by remember { mutableStateOf(false) }
-                val dismissState = rememberSwipeToDismissBoxState()
-
-                if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-                    LaunchedEffect(Unit) { showDeleteDialog = true }
-                }
-
-                if (showDeleteDialog) {
-                    AlertDialog(
-                        onDismissRequest = {
-                            showDeleteDialog = false; dismissScope.launch { dismissState.reset() }
-                        },
-                        title = { Text("Törlés") },
-                        text = { Text("Törlöd: ${expense.title}?") },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                viewModel.deleteExpense(expense)
-                                showDeleteDialog = false
-                            }) { Text("Törlés", color = Color.Red) }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = {
-                                showDeleteDialog =
-                                    false; dismissScope.launch { dismissState.reset() }
-                            }) { Text("Mégse") }
-                        }
-                    )
-                }
-
-                SwipeToDismissBox(
-                    state = dismissState,
-                    enableDismissFromStartToEnd = false,
-                    backgroundContent = {
-                        val color =
-                            if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) Color.Red else Color.Transparent
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(color, RoundedCornerShape(12.dp))
-                                .padding(end = 16.dp),
-                            contentAlignment = Alignment.CenterEnd
-                        ) { Icon(Icons.Default.Delete, "Delete", tint = Color.White) }
-                    }
-                ) {
-                    Box(Modifier.clickable { openEditDraft(expense) }) {
-                        ExpenseCard(expense)
-                    }
-                }
-            }
-
-            item {
-                TextButton(
-                    onClick = { /* Navigate to History Screen TODO */ },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Összes megtekintése", textDecoration = TextDecoration.Underline)
-                }
-            }
-        }
-
-        Surface(
-            tonalElevation = 12.dp,
-            shadowElevation = 12.dp,
-            color = Color.White,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp).padding(bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = textInput,
-                    onValueChange = { textInput = it },
-                    label = { Text("Mit vettél?") },
-                    placeholder = { Text("pl. Tesco 3500", color = Color.Gray) },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.LightGray
-                    )
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Button(
-                    onClick = { openNewDraft() },
-                    shape = CircleShape,
-                    contentPadding = PaddingValues(16.dp),
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Rögzítés")
-                }
-            }
-        }
-    }
-
-    if (showDialog && activeExpense != null) {
-        ExpenseDialog(
-            initialTitle = activeExpense!!.title,
-            initialAmount = if (activeExpense!!.amount > 0) activeExpense!!.amount.toInt().toString() else "",
-            initialCategory = activeExpense!!.category,
-            initialDescription = activeExpense!!.description ?: "",
-            onDismiss = { showDialog = false },
-            onConfirm = { title, amount, category, desc ->
-                val isIncome = (category == "Bevétel")
-                val finalExpense = activeExpense!!.copy(
-                    title = title, amount = amount, category = category, description = desc, isIncome = isIncome
-                )
-                if (finalExpense.id == 0) viewModel.addExpense(finalExpense) else viewModel.updateExpense(finalExpense)
-                showDialog = false
-                textInput = ""
-            }
-        )
-    }
-}
-
-@Composable
 fun BalanceCardWithSparkline(total: Double) {
     Card(
         modifier = Modifier.fillMaxWidth().height(160.dp),
@@ -450,63 +179,6 @@ fun BalanceCardWithSparkline(total: Double) {
                 fontSize = 48.sp
             )
         }
-    }
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun RecurringScreen(
-    viewModel: ExpenseViewModel,
-    onBack: () -> Unit
-) {
-    val items by viewModel.allRecurringItems.collectAsState(initial = emptyList())
-    var showAddDialog by remember { mutableStateOf(false) }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Állandó tételek") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
-            }
-        }
-    ) { padding ->
-        LazyColumn(
-            contentPadding = padding,
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(items) { item ->
-                RecurringItemCard(item, onDelete = { viewModel.deleteRecurringItem(item) })
-            }
-        }
-    }
-
-    if (showAddDialog) {
-        AddRecurringDialog(
-            onDismiss = { showAddDialog = false },
-            onConfirm = { title, amount, isIncome, freq, day ->
-                val newItem = RecurringItem(
-                    title = title,
-                    amount = amount,
-                    category = if (isIncome) "Bevétel" else "Egyéb",
-                    isIncome = isIncome,
-                    frequency = freq,
-                    dayOfMonth = day
-                )
-                viewModel.addRecurringItem(newItem)
-                showAddDialog = false
-            }
-        )
     }
 }
 
@@ -815,7 +487,7 @@ fun getColorForCategory(category: String): Color {
 
 // Helper: Formats 12345.0 -> "12 345"
 fun formatAmount(amount: Double): String {
-    val formatter = NumberFormat.getNumberInstance(Locale("hu", "HU")) // Hungarian format uses spaces/dots
+    val formatter = NumberFormat.getNumberInstance(Locale.forLanguageTag("hu-HU"))
     formatter.maximumFractionDigits = 0
     return formatter.format(amount)
 }
@@ -827,9 +499,4 @@ fun mapFrequency(frequency: Frequency): String {
         Frequency.QUARTERLY -> "Negyedévente"
         Frequency.YEARLY -> "Évente"
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-suspend fun SwipeToDismissBoxState.reset() {
-    snapTo(SwipeToDismissBoxValue.Settled)
 }
