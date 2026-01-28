@@ -1,24 +1,18 @@
 package com.example.personalfinanceapp
 
-import com.example.personalfinanceapp.presentation.home.HomeViewModel
 import com.example.personalfinanceapp.presentation.home.HomeScreen
 import com.example.personalfinanceapp.presentation.recurring.RecurringScreen
+
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,10 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -40,14 +32,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.data.Frequency
-import com.example.personalfinanceapp.data.RecurringItem
-import com.example.personalfinanceapp.ml.ExpenseClassifier
-import kotlinx.coroutines.launch
 import java.text.NumberFormat
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -294,88 +280,6 @@ fun ExpenseDialog(
             }
         }
     )
-}
-
-@Composable
-fun ExpenseCard(expense: Expense) {
-    Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(getColorForCategory(expense.category), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = expense.category.take(1),
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = expense.title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                if (!expense.description.isNullOrBlank()) {
-                    Text(text = expense.description, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                }
-                Text(
-                    text = SimpleDateFormat("yyyy. MM. dd. HH:mm", Locale.getDefault()).format(Date(expense.date)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-            }
-
-            Text(
-                text = if (expense.isIncome) "+${formatAmount(expense.amount)} Ft" else "-${formatAmount(expense.amount)} Ft",
-                color = if (expense.isIncome) Color(0xFF4CAF50) else Color(0xFFD32F2F),
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-        }
-    }
-}
-
-@Composable
-fun RecurringItemCard(item: RecurringItem, onDelete: () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(text = item.title, fontWeight = FontWeight.Bold)
-                Text(
-                    text = "${mapFrequency(item.frequency)} • Nap: ${item.dayOfMonth}.",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "${formatAmount(item.amount)} Ft",
-                    fontWeight = FontWeight.Bold,
-                    color = if (item.isIncome) Color(0xFF4CAF50) else Color.Red
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray)
-                }
-            }
-        }
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

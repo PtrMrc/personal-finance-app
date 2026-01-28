@@ -1,5 +1,7 @@
 package com.example.personalfinanceapp.presentation.recurring
 
+import com.example.personalfinanceapp.presentation.home.components.RecurringItemCard
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -24,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.personalfinanceapp.AddRecurringDialog
-import com.example.personalfinanceapp.RecurringItemCard
 import com.example.personalfinanceapp.data.RecurringItem
 import com.example.personalfinanceapp.presentation.home.HomeViewModel
 
