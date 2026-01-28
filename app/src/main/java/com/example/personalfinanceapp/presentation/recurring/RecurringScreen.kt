@@ -25,7 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.personalfinanceapp.AddRecurringDialog
+import com.example.personalfinanceapp.presentation.recurring.components.AddRecurringDialog
 import com.example.personalfinanceapp.data.RecurringItem
 import com.example.personalfinanceapp.presentation.home.HomeViewModel
 

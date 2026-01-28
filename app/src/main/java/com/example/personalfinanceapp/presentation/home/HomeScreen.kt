@@ -55,8 +55,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.personalfinanceapp.BalanceCardWithSparkline
-import com.example.personalfinanceapp.ExpenseDialog
+import com.example.personalfinanceapp.presentation.home.components.BalanceCardWithSparkline
+import com.example.personalfinanceapp.presentation.home.components.ExpenseDialog
 import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.utils.extractAmount
 import com.example.personalfinanceapp.utils.mapToHungarian
