@@ -58,8 +58,8 @@ import androidx.compose.ui.unit.sp
 import com.example.personalfinanceapp.BalanceCardWithSparkline
 import com.example.personalfinanceapp.ExpenseDialog
 import com.example.personalfinanceapp.data.Expense
-import com.example.personalfinanceapp.extractAmount
-import com.example.personalfinanceapp.mapToHungarian
+import com.example.personalfinanceapp.utils.extractAmount
+import com.example.personalfinanceapp.utils.mapToHungarian
 import com.example.personalfinanceapp.ml.ExpenseClassifier
 import kotlinx.coroutines.launch
 

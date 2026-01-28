@@ -23,8 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.personalfinanceapp.data.Expense
-import com.example.personalfinanceapp.formatAmount
-import com.example.personalfinanceapp.getColorForCategory
+import com.example.personalfinanceapp.utils.formatAmount
+import com.example.personalfinanceapp.utils.getColorForCategory
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
