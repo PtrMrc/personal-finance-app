@@ -5,4 +5,5 @@ sealed class Screen(val route: String) {
     object Stats : Screen("stats")
     object Recurring : Screen("recurring")
     object Learning : Screen("learning")
+    object History : Screen("history")
 }

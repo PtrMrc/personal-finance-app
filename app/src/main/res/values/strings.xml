@@ -81,4 +81,13 @@
     <string name="cd_add">Hozzáadás</string>
     <string name="cd_delete">Törlés</string>
     <string name="cd_back">Vissza</string>
+
+    <!-- History -->
+    <string name="history_title">Előzmények</string>
+    <string name="filter_week">Heti</string>
+    <string name="filter_month">Havi</string>
+    <string name="filter_year">Éves</string>
+    <string name="filter_all">Mind</string>
+    <string name="no_data_message">Nincs megjeleníthető adat ebben az időszakban.</string>
+    <string name="see_all_transactions">Összes</string>
 </resources>

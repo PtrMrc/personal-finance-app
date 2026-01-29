@@ -53,13 +53,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.personalfinanceapp.R
 import com.example.personalfinanceapp.presentation.home.components.BalanceCardWithSparkline
 import com.example.personalfinanceapp.presentation.home.components.ExpenseDialog
 import com.example.personalfinanceapp.data.Expense
+import com.example.personalfinanceapp.presentation.navigation.Screen
 import com.example.personalfinanceapp.utils.extractAmount
 import com.example.personalfinanceapp.utils.mapToHungarian
 import kotlinx.coroutines.launch
@@ -67,7 +70,10 @@ import kotlinx.coroutines.launch
 /*TODO: Use stringResource instead of hardcoded strings (in other files too)*/
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel) {
+fun HomeScreen(
+    viewModel: HomeViewModel,
+    onSeeAllClick: () -> Unit
+) {
     val errorMessage by viewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -246,10 +252,10 @@ fun HomeScreen(viewModel: HomeViewModel) {
 
                 item {
                     TextButton(
-                        onClick = { /* Navigate to History Screen TODO */ },
+                        onClick = onSeeAllClick,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Összes megtekintése", textDecoration = TextDecoration.Underline)
+                        Text(stringResource(R.string.see_all_transactions), textDecoration = TextDecoration.Underline)
                     }
                 }
             }

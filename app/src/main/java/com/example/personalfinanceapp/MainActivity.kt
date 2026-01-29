@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -28,7 +29,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.example.personalfinanceapp.data.AppDatabase
+import com.example.personalfinanceapp.data.repository.ExpenseRepository
+import com.example.personalfinanceapp.presentation.history.HistoryViewModel
 import java.util.concurrent.TimeUnit
+import com.example.personalfinanceapp.presentation.history.HistoryScreen
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -104,7 +111,10 @@ fun MainApp() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Home.route) {
-                HomeScreen(viewModel = viewModel())
+                HomeScreen(
+                    viewModel = viewModel(),
+                    onSeeAllClick = { navController.navigate(Screen.History.route) }
+                )
             }
             composable(Screen.Stats.route) {
                 // Placeholder for Charts
@@ -122,6 +132,27 @@ fun MainApp() {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(stringResource(R.string.placeholder_learning))
                 }
+            }
+            composable(Screen.History.route) {
+                // 1. Get the Repository (Assuming you have access to it or create it here)
+                val context = LocalContext.current
+                val db = AppDatabase.getDatabase(context)
+                val repository = ExpenseRepository(db.expenseDao())
+
+                // 2. Create the ViewModel with Factory
+                val historyViewModel: HistoryViewModel = viewModel(
+                    factory = object : ViewModelProvider.Factory {
+                        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                            return HistoryViewModel(repository) as T
+                        }
+                    }
+                )
+
+                // 3. Show the Screen
+                HistoryScreen(
+                    viewModel = historyViewModel,
+                    onBack = { navController.popBackStack() }
+                )
             }
         }
     }
