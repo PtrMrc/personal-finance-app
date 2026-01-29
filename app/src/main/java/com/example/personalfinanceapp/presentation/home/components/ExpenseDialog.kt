@@ -1,5 +1,8 @@
 package com.example.personalfinanceapp.presentation.home.components
 
+import com.example.personalfinanceapp.utils.Validation
+import com.example.personalfinanceapp.utils.ValidationResult
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +51,9 @@ fun ExpenseDialog(
     var expanded by remember { mutableStateOf(false) }
     val categories = listOf("Élelmiszer", "Utazás", "Szórakozás", "Számlák", "Egészség", "Bevétel", "Egyéb")
 
+    var titleError by remember { mutableStateOf<String?>(null) }
+    var amountError by remember { mutableStateOf<String?>(null) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Új Tétel") },
@@ -56,20 +62,28 @@ fun ExpenseDialog(
                 // Title
                 OutlinedTextField(
                     value = title,
-                    onValueChange = { title = it },
+                    onValueChange = {
+                        title = it
+                        titleError = null
+                    },
                     label = { Text("Megnevezés") },
                     singleLine = true,
-                    isError = showError && title.isBlank()
+                    isError = titleError != null,
+                    supportingText = titleError?.let { { Text(it) } }
                 )
 
                 // Amount
                 OutlinedTextField(
                     value = amount,
-                    onValueChange = { amount = it },
+                    onValueChange = {
+                        amount = it
+                        amountError = null
+                    },
                     label = { Text("Összeg (Ft)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
-                    isError = showError && amount.toDoubleOrNull() == null
+                    isError = amountError != null,
+                    supportingText = amountError?.let { { Text(it) } }
                 )
 
                 if (showError) {
@@ -120,11 +134,18 @@ fun ExpenseDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val amountDouble = amount.toDoubleOrNull() ?: 0.0
-                    if (title.isNotBlank() && amountDouble > 0) {
-                        onConfirm(title, amountDouble, category, description)
-                    } else {
-                        showError = true
+                    val titleValidation = Validation.validateTitle(title)
+                    val amountValidation = Validation.validateAmount(amount)
+                    if (titleValidation is ValidationResult.Error) {
+                        titleError = titleValidation.message
+                    }
+                    if (amountValidation is ValidationResult.Error) {
+                        amountError = amountValidation.message
+                    }
+
+                    if (titleValidation is ValidationResult.Success && amountValidation is ValidationResult.Success) {
+                        val amt = amount.toDouble()
+                        onConfirm(title, amt, category, description)
                     }
                 }
             ) {

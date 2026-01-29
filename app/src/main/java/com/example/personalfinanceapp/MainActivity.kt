@@ -2,6 +2,7 @@ package com.example.personalfinanceapp
 
 import com.example.personalfinanceapp.presentation.home.HomeScreen
 import com.example.personalfinanceapp.presentation.recurring.RecurringScreen
+import com.example.personalfinanceapp.presentation.navigation.Screen
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -71,55 +73,54 @@ fun MainApp() {
             ) {
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Főoldal") },
-                    selected = currentRoute == "home",
-                    onClick = { navController.navigate("home") }
+                    label = { Text(stringResource(R.string.nav_home)) },
+                    selected = currentRoute == Screen.Home.route,
+                    onClick = { navController.navigate(Screen.Home.route) }
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Info, contentDescription = "Stats") },
-                    label = { Text("Elemzés") },
-                    selected = currentRoute == "stats",
-                    onClick = { navController.navigate("stats") }
+                    label = { Text(stringResource(R.string.nav_stats)) },
+                    selected = currentRoute == Screen.Stats.route,
+                    onClick = { navController.navigate(Screen.Stats.route) }
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.DateRange, contentDescription = "Recurring") },
-                    label = { Text("Állandó") },
-                    selected = currentRoute == "recurring",
-                    onClick = { navController.navigate("recurring") }
+                    label = { Text(stringResource(R.string.nav_recurring)) },
+                    selected = currentRoute == Screen.Recurring.route,
+                    onClick = { navController.navigate(Screen.Recurring.route) }
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.AccountBox, contentDescription = "Learn") },
-                    label = { Text("Jövő") },
-                    selected = currentRoute == "learning",
-                    onClick = { navController.navigate("learning") }
+                    label = { Text(stringResource(R.string.nav_learning)) },
+                    selected = currentRoute == Screen.Learning.route,
+                    onClick = { navController.navigate(Screen.Learning.route) }
                 )
             }
         }
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "home",
+            startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("home") {
+            composable(Screen.Home.route) {
                 HomeScreen(viewModel = viewModel())
             }
-            composable("stats") {
-                // Placeholder for Charts (we can add Vico later)
+            composable(Screen.Stats.route) {
+                // Placeholder for Charts
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Elemzések hamarosan...")
+                    Text(stringResource(R.string.placeholder_stats))
                 }
             }
-            composable("recurring") {
-                // We reuse your existing RecurringScreen
+            composable(Screen.Recurring.route) {
                 RecurringScreen(
                     viewModel = viewModel(),
-                    onBack = { navController.navigate("home") }
+                    onBack = { navController.navigate(Screen.Home.route) }
                 )
             }
-            composable("learning") {
+            composable(Screen.Learning.route) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("AI Előrejelzés hamarosan...")
+                    Text(stringResource(R.string.placeholder_learning))
                 }
             }
         }

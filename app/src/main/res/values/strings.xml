@@ -1,3 +1,84 @@
 <resources>
     <string name="app_name">Personal Finance App</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Főoldal</string>
+    <string name="nav_stats">Elemzés</string>
+    <string name="nav_recurring">Állandó</string>
+    <string name="nav_learning">Jövő</string>
+
+    <!-- Home Screen -->
+    <string name="balance_title">Egyenleg</string>
+    <string name="recent_expenses">Legutóbbi kiadások</string>
+    <string name="no_expenses">Még nincsenek kiadások</string>
+
+    <!-- Expense Dialog -->
+    <string name="dialog_add_expense">Új Kiadás</string>
+    <string name="dialog_edit_expense">Kiadás Szerkesztése</string>
+    <string name="label_title">Megnevezés</string>
+    <string name="label_amount">Összeg</string>
+    <string name="label_category">Kategória</string>
+    <string name="label_description">Megjegyzés</string>
+    <string name="btn_save">Mentés</string>
+    <string name="btn_cancel">Mégse</string>
+    <string name="checkbox_income">Bevétel</string>
+
+    <!-- Recurring Dialog -->
+    <string name="dialog_add_recurring">Új Ismétlődő Tétel</string>
+    <string name="label_day">Nap (1-31)</string>
+    <string name="label_frequency">Gyakoriság</string>
+
+    <!-- Categories -->
+    <string name="category_food">Élelmiszer</string>
+    <string name="category_transport">Utazás</string>
+    <string name="category_entertainment">Szórakozás</string>
+    <string name="category_bills">Számlák</string>
+    <string name="category_health">Egészség</string>
+    <string name="category_income">Bevétel</string>
+    <string name="category_other">Egyéb</string>
+
+    <!-- Frequency -->
+    <string name="frequency_monthly">Havonta</string>
+    <string name="frequency_quarterly">Negyedévente</string>
+    <string name="frequency_yearly">Évente</string>
+
+    <!-- Validation Errors -->
+    <string name="error_title_empty">A megnevezés nem lehet üres</string>
+    <string name="error_title_short">A megnevezés túl rövid</string>
+    <string name="error_title_long">A megnevezés túl hosszú (max 100 karakter)</string>
+    <string name="error_amount_empty">Az összeg nem lehet üres</string>
+    <string name="error_amount_invalid">Érvénytelen összeg</string>
+    <string name="error_amount_positive">Az összeg pozitív szám kell legyen</string>
+    <string name="error_amount_too_large">Az összeg túl nagy</string>
+    <string name="error_day_empty">A nap nem lehet üres</string>
+    <string name="error_day_invalid">Érvénytelen nap</string>
+    <string name="error_day_range">A nap 1 és 31 között kell legyen</string>
+
+    <!-- ViewModel Errors -->
+    <string name="error_add_expense">Hiba a kiadás hozzáadásakor: %s</string>
+    <string name="error_delete_expense">Hiba a kiadás törlésekor: %s</string>
+    <string name="error_update_expense">Hiba a kiadás frissítésekor: %s</string>
+    <string name="error_add_recurring">Hiba az ismétlődő tétel hozzáadásakor: %s</string>
+    <string name="error_delete_recurring">Hiba az ismétlődő tétel törlésekor: %s</string>
+
+    <!-- Placeholders -->
+    <string name="placeholder_stats">Elemzések hamarosan…</string>
+    <string name="placeholder_learning">AI Előrejelzés hamarosan…</string>
+    <string name="placeholder_unknown">Ismeretlen</string>
+
+    <!-- Currency -->
+    <string name="currency_suffix">Ft</string>
+    <string name="amount_positive">+%s Ft</string>
+    <string name="amount_negative">-%s Ft</string>
+
+    <!-- Content Descriptions -->
+    <string name="cd_home">Főoldal</string>
+    <string name="cd_stats">Elemzés</string>
+    <string name="cd_recurring">Állandó</string>
+    <string name="cd_learning">Jövő</string>
+    <string name="cd_profile">Profil</string>
+    <string name="cd_send">Küldés</string>
+    <string name="cd_add">Hozzáadás</string>
+    <string name="cd_delete">Törlés</string>
+    <string name="cd_back">Vissza</string>
 </resources>

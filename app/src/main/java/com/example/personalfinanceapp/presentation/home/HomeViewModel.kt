@@ -9,6 +9,7 @@ import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.data.RecurringItem
 import com.example.personalfinanceapp.data.repository.ExpenseRepository
 import com.example.personalfinanceapp.data.repository.RecurringRepository
+import com.example.personalfinanceapp.ml.ExpenseClassifier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +21,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val expenseRepository = ExpenseRepository(database.expenseDao())
     private val recurringRepository = RecurringRepository(database.recurringDao())
 
+    private val classifier = ExpenseClassifier(application)
+
     val allExpenses: Flow<List<Expense>> = expenseRepository.allExpenses
     val totalSpending: Flow<Double?> = expenseRepository.totalSpending
     val categoryBreakdown = expenseRepository.categoryBreakdown
@@ -28,6 +31,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
+    // Category prediction with ML classifier
+    suspend fun predictCategory(title: String): String? {
+        return try {
+            // First check history
+            val historyCategory = expenseRepository.getCategoryPrediction(title)
+                .getOrNull()
+
+            // If no history, use ML classifier
+            historyCategory ?: classifier.classify(title)
+        } catch (e: Exception) {
+            Log.e("HomeViewModel", "Failed to predict category", e)
+            null
+        }
+    }
+
+    // Expense operations with error handling
     fun addExpense(expense: Expense) {
         viewModelScope.launch {
             expenseRepository.addExpense(expense)
@@ -65,14 +84,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     _errorMessage.value = null
                 }
         }
-    }
-
-    suspend fun getCategoryPrediction(title: String): String? {
-        return expenseRepository.getCategoryPrediction(title)
-            .onFailure { e ->
-                Log.e("HomeViewModel", "Failed to get category prediction", e)
-            }
-            .getOrNull()
     }
 
     fun addRecurringItem(item: RecurringItem) {

@@ -1,5 +1,8 @@
 package com.example.personalfinanceapp.presentation.recurring.components
 
+import com.example.personalfinanceapp.utils.Validation
+import com.example.personalfinanceapp.utils.ValidationResult
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,24 +49,49 @@ fun AddRecurringDialog(
     var freqExpanded by remember { mutableStateOf(false) }
     var selectedFreq by remember { mutableStateOf(Frequency.MONTHLY) }
 
+    var titleError by remember { mutableStateOf<String?>(null) }
+    var amountError by remember { mutableStateOf<String?>(null) }
+    var dayError by remember { mutableStateOf<String?>(null) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Új Ismétlődő Tétel") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Megnevezés") })
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = {
+                        title = it
+                        titleError = null
+                    },
+                    label = { Text("Megnevezés") },
+                    isError = titleError != null,
+                    supportingText = titleError?.let { { Text(it) } }
+                )
                 OutlinedTextField(
                     value = amount,
-                    onValueChange = { amount = it },
+                    onValueChange = {
+                        amount = it
+                        amountError = null
+                    },
                     label = { Text("Összeg") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = amountError != null,
+                    supportingText = amountError?.let { { Text(it) } }
                 )
 
                 OutlinedTextField(
                     value = day,
-                    onValueChange = { if (it.length <= 2) day = it },
+                    onValueChange = {
+                        if (it.length <= 2) {
+                            day = it
+                            dayError = null
+                        }
+                    },
                     label = { Text("Nap (1-31)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = dayError != null,
+                    supportingText = dayError?.let { { Text(it) } }
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -93,9 +121,23 @@ fun AddRecurringDialog(
         },
         confirmButton = {
             Button(onClick = {
-                val amt = amount.toDoubleOrNull() ?: 0.0
-                val dayInt = day.toIntOrNull() ?: 1
-                if (title.isNotBlank() && amt > 0) {
+                val titleValidation = Validation.validateTitle(title)
+                val amountValidation = Validation.validateAmount(amount)
+                val dayValidation = Validation.validateDay(day)
+
+                if (titleValidation is ValidationResult.Error) {
+                    titleError = titleValidation.message
+                }
+                if (amountValidation is ValidationResult.Error) {
+                    amountError = amountValidation.message
+                }
+                if (dayValidation is ValidationResult.Error) {
+                    dayError = dayValidation.message
+                }
+
+                if (titleValidation is ValidationResult.Success && amountValidation is ValidationResult.Success && dayValidation is ValidationResult.Success) {
+                    val amt = amount.toDouble()
+                    val dayInt = day.toInt()
                     onConfirm(title, amt, isIncome, selectedFreq, dayInt)
                 }
             }) { Text("Mentés") }
