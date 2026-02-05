@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit
 import com.example.personalfinanceapp.presentation.history.HistoryScreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.personalfinanceapp.presentation.learning.LearningScreen
 import com.example.personalfinanceapp.presentation.stats.StatsScreen
 import com.example.personalfinanceapp.presentation.stats.StatsViewModel
 
@@ -131,9 +132,7 @@ fun MainApp() {
                 )
             }
             composable(Screen.Learning.route) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(stringResource(R.string.placeholder_learning))
-                }
+                LearningScreen()
             }
             composable(Screen.History.route) {
                 // 1. Get the Repository (Assuming you have access to it or create it here)
