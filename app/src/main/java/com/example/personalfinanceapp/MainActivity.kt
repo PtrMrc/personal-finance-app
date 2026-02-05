@@ -36,6 +36,8 @@ import java.util.concurrent.TimeUnit
 import com.example.personalfinanceapp.presentation.history.HistoryScreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.personalfinanceapp.presentation.stats.StatsScreen
+import com.example.personalfinanceapp.presentation.stats.StatsViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -153,6 +155,22 @@ fun MainApp() {
                     viewModel = historyViewModel,
                     onBack = { navController.popBackStack() }
                 )
+            }
+            composable(Screen.Stats.route) {
+                val context = LocalContext.current
+                val db = AppDatabase.getDatabase(context)
+                val repo = ExpenseRepository(db.expenseDao())
+
+                val statsViewModel = viewModel<StatsViewModel>(
+                    factory = object : ViewModelProvider.Factory {
+                        @Suppress("UNCHECKED_CAST")
+                        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                            return StatsViewModel(repo) as T
+                        }
+                    }
+                )
+
+                StatsScreen(viewModel = statsViewModel)
             }
         }
     }

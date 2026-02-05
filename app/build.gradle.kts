@@ -29,6 +29,7 @@ android {
         }
     }
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
@@ -75,4 +76,10 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
 
     implementation(libs.androidx.navigation.compose)
+
+    implementation(libs.compose)
+    implementation(libs.compose.m3)
+    implementation(libs.core)
+
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
