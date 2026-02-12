@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.personalfinanceapp.presentation.stats.components.ForecastCard
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
@@ -49,6 +50,9 @@ fun StatsScreen(viewModel: StatsViewModel) {
     val categoryBreakdown by viewModel.categoryBreakdown.collectAsState()
     val averageDaily by viewModel.averageDailySpending.collectAsState()
     val topCategory by viewModel.topCategory.collectAsState()
+    val forecast by viewModel.spendingForecast.collectAsState()
+    val transactionCount by viewModel.transactionCount.collectAsState()
+
     var selectedPeriod by remember { mutableStateOf(TimePeriod.WEEK) }
     var showDetails by remember { mutableStateOf(false) }
 
@@ -135,6 +139,16 @@ fun StatsScreen(viewModel: StatsViewModel) {
                     color = Color(0xFF8B5CF6),
                     trend = null
                 )
+            }
+        }
+
+        // FORECAST CARD
+        AnimatedVisibility(
+            visible = visible && forecast != null && transactionCount > 3,
+            enter = fadeIn(tween(600, 250)) + slideInVertically(tween(600, 250))
+        ) {
+            forecast?.let {
+                ForecastCard(prediction = it)
             }
         }
 
