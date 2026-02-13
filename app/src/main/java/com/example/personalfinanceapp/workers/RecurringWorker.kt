@@ -1,4 +1,4 @@
-package com.example.personalfinanceapp
+package com.example.personalfinanceapp.workers
 
 import android.content.Context
 import androidx.work.CoroutineWorker
@@ -7,7 +7,6 @@ import com.example.personalfinanceapp.data.AppDatabase
 import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.data.Frequency
 import com.example.personalfinanceapp.data.RecurringItem
-import kotlinx.coroutines.flow.forEach
 import java.util.Calendar
 
 class RecurringWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {

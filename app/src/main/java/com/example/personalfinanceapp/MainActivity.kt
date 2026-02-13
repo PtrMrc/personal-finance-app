@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -39,6 +38,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.personalfinanceapp.presentation.learning.LearningScreen
 import com.example.personalfinanceapp.presentation.stats.StatsScreen
 import com.example.personalfinanceapp.presentation.stats.StatsViewModel
+import com.example.personalfinanceapp.workers.RecurringWorker
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -118,12 +118,6 @@ fun MainApp() {
                     viewModel = viewModel(),
                     onSeeAllClick = { navController.navigate(Screen.History.route) }
                 )
-            }
-            composable(Screen.Stats.route) {
-                // Placeholder for Charts
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(stringResource(R.string.placeholder_stats))
-                }
             }
             composable(Screen.Recurring.route) {
                 RecurringScreen(
