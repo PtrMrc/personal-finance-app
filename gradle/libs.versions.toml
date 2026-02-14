@@ -1,5 +1,5 @@
 [versions]
-agp = "9.0.0"
+agp = "9.0.1"
 compose = "2.4.3"
 desugar_jdk_libs = "2.1.5"
 kotlin = "2.3.0"
@@ -7,6 +7,7 @@ coreKtx = "1.17.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
+kotlinxCoroutinesTest = "1.10.2"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.12.2"
 composeBom = "2025.12.01"
@@ -17,6 +18,8 @@ tensorflowLite = "2.17.0"
 tensorflowLiteSupport = "0.5.0"
 lifecycle = "2.10.0"
 workRuntimeKtx = "2.11.0"
+junitJupiter = "6.0.0"
+junitJunit = "4.12"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -44,10 +47,14 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 #noinspection Aligned16KB,Aligned16KB
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
 tensorflow-lite = { group = "org.tensorflow", name = "tensorflow-lite", version.ref = "tensorflowLite" }
 tensorflow-lite-support = { group = "org.tensorflow", name = "tensorflow-lite-support", version.ref = "tensorflowLiteSupport" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version = "1.7.8" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junitJupiter" }
+junit-junit = { group = "junit", name = "junit", version.ref = "junitJunit" }
+vico-core = { module = "com.patrykandpatrick.vico:core" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

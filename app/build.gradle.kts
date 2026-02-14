@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
@@ -28,21 +27,37 @@ android {
             )
         }
     }
+
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
-    kotlin {
-        jvmToolchain(21)
+
+    sourceSets {
+        getByName("main") {
+            kotlin.directories += listOf("build/generated/ksp/main/kotlin")
+        }
+        getByName("debug") {
+            kotlin.directories += listOf("build/generated/ksp/debug/kotlin")
+        }
     }
+
     buildFeatures {
         compose = true
+    }
+
+    packaging {
+        resources {
+            pickFirsts += "/META-INF/LICENSE.md"
+            pickFirsts += "/META-INF/LICENSE-notice.md"
+            pickFirsts += "/META-INF/NOTICE.md"
+        }
     }
 }
 
 dependencies {
-
+    // Core Android & Compose
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -51,35 +66,39 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    testImplementation(libs.junit)
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.navigation.compose)
+
+    // Unit Testing - CLEANED UP (Removed Jupiter to fix collision)
+    testImplementation(libs.junit) // Keep only the JUnit 4 dependency
+    testImplementation(libs.kotlinx.coroutines.test)
+
+    // Instrumented Testing
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
 
-    // ROOM DATABASE
+    // Room Database
     implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx) // Extensions for Coroutines
-    ksp(libs.androidx.room.compiler)      // Code Generator
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     // Machine Learning
     implementation(libs.tensorflow.lite)
     implementation(libs.tensorflow.lite.support)
 
-    implementation(libs.androidx.material.icons.extended)
+    // Architecture & Background
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
-
-    // WorkManager (Background Tasks)
     implementation(libs.androidx.work.runtime.ktx)
 
-    implementation(libs.androidx.navigation.compose)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
+
+    debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
 
     implementation(libs.compose)
     implementation(libs.compose.m3)
     implementation(libs.core)
-
-    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
