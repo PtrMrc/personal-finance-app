@@ -35,10 +35,13 @@ import java.util.concurrent.TimeUnit
 import com.example.personalfinanceapp.presentation.history.HistoryScreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import com.example.personalfinanceapp.presentation.home.HomeViewModel
 import com.example.personalfinanceapp.presentation.learning.LearningScreen
 import com.example.personalfinanceapp.presentation.stats.StatsScreen
 import com.example.personalfinanceapp.presentation.stats.StatsViewModel
 import com.example.personalfinanceapp.workers.RecurringWorker
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,6 +65,11 @@ class MainActivity : ComponentActivity() {
             ) {
                 MainApp()
             }
+        }
+
+        lifecycleScope.launch {
+            val db = AppDatabase.getDatabase(this@MainActivity)
+            db.modelPerformanceDao().initializeDefaultModels()
         }
     }
 }
@@ -126,15 +134,13 @@ fun MainApp() {
                 )
             }
             composable(Screen.Learning.route) {
-                LearningScreen()
+                LearningScreen(viewModel = viewModel())
             }
             composable(Screen.History.route) {
-                // 1. Get the Repository (Assuming you have access to it or create it here)
                 val context = LocalContext.current
                 val db = AppDatabase.getDatabase(context)
                 val repository = ExpenseRepository(db.expenseDao())
-
-                // 2. Create the ViewModel with Factory
+                
                 val historyViewModel: HistoryViewModel = viewModel(
                     factory = object : ViewModelProvider.Factory {
                         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -143,7 +149,6 @@ fun MainApp() {
                     }
                 )
 
-                // 3. Show the Screen
                 HistoryScreen(
                     viewModel = historyViewModel,
                     onBack = { navController.popBackStack() }

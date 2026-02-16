@@ -8,11 +8,17 @@ import com.example.personalfinanceapp.data.AppDatabase
 import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.data.RecurringItem
 import com.example.personalfinanceapp.data.repository.ExpenseRepository
+import com.example.personalfinanceapp.data.repository.NaiveBayesRepository
 import com.example.personalfinanceapp.data.repository.RecurringRepository
+import com.example.personalfinanceapp.ml.AdaptiveEnsembleModel
+import com.example.personalfinanceapp.ml.EnsemblePrediction
+import com.example.personalfinanceapp.ml.EnsembleStats
 import com.example.personalfinanceapp.ml.ExpenseClassifier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -20,8 +26,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
     private val expenseRepository = ExpenseRepository(database.expenseDao())
     private val recurringRepository = RecurringRepository(database.recurringDao())
+    private val naiveBayesRepository = NaiveBayesRepository(database.wordCategoryCountDao())
 
-    private val classifier = ExpenseClassifier(application)
+    private val tfliteClassifier = ExpenseClassifier(application)
+
+    private val ensembleModel = AdaptiveEnsembleModel(
+        context = application,
+        tfliteClassifier = tfliteClassifier,
+        naiveBayesRepository = naiveBayesRepository,
+        modelPerformanceDao = database.modelPerformanceDao()
+    )
 
     val allExpenses: Flow<List<Expense>> = expenseRepository.allExpenses
     val totalSpending: Flow<Double?> = expenseRepository.totalSpending
@@ -31,18 +45,60 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    // Category prediction with ML classifier
-    suspend fun predictCategory(title: String): String? {
-        return try {
-            // First check history
-            val historyCategory = expenseRepository.getCategoryPrediction(title)
-                .getOrNull()
+    val ensembleStats: Flow<EnsembleStats> = flow {
+        while (true) {
+            try {
+                val stats = ensembleModel.getEnsembleStats()
+                emit(stats)
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "Error getting ensemble stats", e)
+            }
+            delay(5000)  // Update every 5 seconds
+        }
+    }
 
-            // If no history, use ML classifier
-            historyCategory ?: classifier.classify(title)
+    /**
+     * Predict category using adaptive ensemble
+     *
+     * @param title Expense title
+     * @return Ensemble prediction with both model predictions
+     */
+    suspend fun predictCategoryEnsemble(title: String): EnsemblePrediction {
+        return try {
+            ensembleModel.predict(title)
         } catch (e: Exception) {
             Log.e("HomeViewModel", "Failed to predict category", e)
-            null
+            // Return fallback prediction
+            EnsemblePrediction(
+                finalCategory = "Other",
+                confidence = 0.3,
+                tflitePrediction = null,
+                naiveBayesPrediction = null,
+                weights = com.example.personalfinanceapp.ml.ModelWeights(0.6, 0.4),
+                explanation = "Error occurred"
+            )
+        }
+    }
+
+    /**
+     * Record user's category choice and learn from it
+     *
+     * @param title Expense title
+     * @param ensemblePrediction What the ensemble predicted
+     * @param userChoice What the user actually chose
+     */
+    fun recordCategoryChoice(
+        title: String,
+        ensemblePrediction: EnsemblePrediction,
+        userChoice: String
+    ) {
+        viewModelScope.launch {
+            try {
+                ensembleModel.recordUserChoice(title, ensemblePrediction, userChoice)
+                Log.d("HomeViewModel", "Recorded user choice and updated weights")
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "Failed to record user choice", e)
+            }
         }
     }
 

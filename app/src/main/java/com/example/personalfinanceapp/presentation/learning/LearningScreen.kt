@@ -1,8 +1,6 @@
 package com.example.personalfinanceapp.presentation.learning
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,16 +12,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.personalfinanceapp.presentation.home.HomeViewModel
+import java.util.Locale.getDefault
 
 @Composable
-fun LearningScreen() {
+fun LearningScreen(viewModel: HomeViewModel) {
     val lessons = listOf(
         FinanceLesson(1, "Az 50/30/20 szabály", "5 perc", Icons.Default.PieChart, Color(0xFF6366F1), LessonLevel.BEGINNER),
         FinanceLesson(2, "Vészhelyzeti tartalék", "8 perc", Icons.Default.Shield, Color(0xFF10B981), LessonLevel.BEGINNER),
@@ -65,6 +63,8 @@ fun LearningScreen() {
             item {
                 FeaturedLessonCard()
             }
+
+            item {AILearningCard(viewModel)}
 
             item {
                 Text(
@@ -162,7 +162,10 @@ fun LessonCard(lesson: FinanceLesson) {
                     color = Color(0xFF1E293B)
                 )
                 Text(
-                    text = "${lesson.duration} • ${lesson.level.name.lowercase().capitalize()}",
+                    text = "${lesson.duration} • ${
+                        lesson.level.name.lowercase()
+                            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(getDefault()) else it.toString() }
+                    }",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color(0xFF64748B)
                 )

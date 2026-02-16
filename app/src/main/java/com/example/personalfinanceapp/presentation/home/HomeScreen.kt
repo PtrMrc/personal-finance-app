@@ -82,17 +82,14 @@ fun HomeScreen(
             .replace(amountVal.toString(), "").trim().ifBlank { "Ismeretlen" }
 
         scope.launch {
-            val predictedCategory = viewModel.predictCategory(titleVal)
-            val finalCategory = mapToHungarian(predictedCategory ?: "Other")
-
             activeExpense = Expense(
                 id = 0,
                 title = titleVal,
                 amount = if (amountVal > 0) amountVal else 0.0,
-                category = finalCategory,
+                category = "",
                 description = "",
                 date = System.currentTimeMillis(),
-                isIncome = (finalCategory == "Bevétel")
+                isIncome = (false)
             )
             showDialog = true
         }
@@ -308,6 +305,7 @@ fun HomeScreen(
             initialAmount = if (activeExpense!!.amount > 0) activeExpense!!.amount.toInt().toString() else "",
             initialCategory = activeExpense!!.category,
             initialDescription = activeExpense!!.description ?: "",
+            viewModel = viewModel,
             onDismiss = { showDialog = false },
             onConfirm = { title, amount, category, desc ->
                 val isIncome = (category == "Bevétel")
