@@ -168,7 +168,7 @@ fun AddRecurringDialog(
                                 colors = CheckboxDefaults.colors(checkedColor = Color(0xFF10B981))
                             )
                             Text(
-                                text = "Ez egy rendszeres bevétel",
+                                text = "Bevétel",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
                                 color = if (isIncome) Color(0xFF059669) else Color(0xFF64748B)

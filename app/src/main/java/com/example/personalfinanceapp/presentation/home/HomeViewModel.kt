@@ -5,8 +5,10 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.personalfinanceapp.data.AppDatabase
+import com.example.personalfinanceapp.data.Budget
 import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.data.RecurringItem
+import com.example.personalfinanceapp.data.repository.BudgetRepository
 import com.example.personalfinanceapp.data.repository.ExpenseRepository
 import com.example.personalfinanceapp.data.repository.NaiveBayesRepository
 import com.example.personalfinanceapp.data.repository.RecurringRepository
@@ -19,9 +21,26 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import java.util.Calendar
 
-class HomeViewModel(application: Application) : AndroidViewModel(application) {
+data class BudgetProgress(
+    val category: String,
+    val limit: Double,
+    val spent: Double
+) {
+    val percentage = if (limit > 0) spent / limit else 0.0
+    val isWarning = percentage in 0.8..<1.0 // 80% to 99%
+    val isExceeded = percentage >= 1.0 // 100%+
+}
+
+class HomeViewModel(
+    application: Application,
+    private val budgetRepository: BudgetRepository
+) : AndroidViewModel(application) {
 
     private val database = AppDatabase.getDatabase(application)
     private val expenseRepository = ExpenseRepository(database.expenseDao())
@@ -54,6 +73,58 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 Log.e("HomeViewModel", "Error getting ensemble stats", e)
             }
             delay(5000)  // Update every 5 seconds
+        }
+    }
+
+    // --- BUDGET LOGIC ---
+    val budgetProgress: StateFlow<List<BudgetProgress>> = combine(
+        expenseRepository.allExpenses,
+        budgetRepository.allBudgets
+    ) { expenses, budgets ->
+        // Get current month and year
+        val cal = Calendar.getInstance()
+        val currentMonth = cal.get(Calendar.MONTH)
+        val currentYear = cal.get(Calendar.YEAR)
+
+        // Filter expenses for THIS MONTH only
+        val monthlyExpenses = expenses.filter {
+            val expCal = Calendar.getInstance().apply { timeInMillis = it.date }
+            expCal.get(Calendar.MONTH) == currentMonth &&
+                    expCal.get(Calendar.YEAR) == currentYear &&
+                    !it.isIncome
+        }
+
+        // Sum by category
+        val spentByCategory = monthlyExpenses
+            .groupBy { it.category }
+            .mapValues { entry -> entry.value.sumOf { it.amount } }
+
+        // Map to Progress objects
+        budgets.map { budget ->
+            val spentAmount = if (budget.category.trim().equals("Összesen", ignoreCase = true)) {
+                monthlyExpenses.sumOf { it.amount }
+            } else {
+                spentByCategory[budget.category] ?: 0.0
+            }
+
+            BudgetProgress(
+                category = budget.category,
+                limit = budget.monthlyLimit,
+                spent = spentAmount
+            )
+        }.sortedByDescending { it.percentage } // Put most urgent at the top
+
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    fun setBudget(category: String, limit: Double) {
+        viewModelScope.launch {
+            budgetRepository.setBudget(Budget(category, limit))
+        }
+    }
+
+    fun deleteBudget(category: String) {
+        viewModelScope.launch {
+            // Need the full object to delete
+            budgetRepository.deleteBudget(Budget(category, 0.0))
         }
     }
 

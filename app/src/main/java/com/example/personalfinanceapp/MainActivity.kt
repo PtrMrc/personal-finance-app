@@ -1,5 +1,6 @@
 package com.example.personalfinanceapp
 
+import android.app.Application
 import com.example.personalfinanceapp.presentation.home.HomeScreen
 import com.example.personalfinanceapp.presentation.recurring.RecurringScreen
 import com.example.personalfinanceapp.presentation.navigation.Screen
@@ -36,6 +37,9 @@ import com.example.personalfinanceapp.presentation.history.HistoryScreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.example.personalfinanceapp.data.repository.BudgetRepository
+import com.example.personalfinanceapp.data.repository.RecurringRepository
+import com.example.personalfinanceapp.presentation.budget.BudgetSetupScreen
 import com.example.personalfinanceapp.presentation.home.HomeViewModel
 import com.example.personalfinanceapp.presentation.learning.LearningScreen
 import com.example.personalfinanceapp.presentation.stats.StatsScreen
@@ -73,12 +77,24 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 fun MainApp() {
+    val context = LocalContext.current
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
+
+    val db = AppDatabase.getDatabase(context)
+    val budgetRepo = BudgetRepository(db.budgetDao())
+
+    val sharedHomeViewModel = viewModel<HomeViewModel>(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return HomeViewModel(context.applicationContext as Application, budgetRepo) as T
+            }
+        }
+    )
 
     Scaffold(
         bottomBar = {
@@ -123,42 +139,48 @@ fun MainApp() {
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
-                    viewModel = viewModel(),
-                    onSeeAllClick = { navController.navigate(Screen.History.route) }
+                    viewModel = sharedHomeViewModel,
+                    onSeeAllClick = { navController.navigate(Screen.History.route) },
+                    onBudgetSetupClick = { navController.navigate(Screen.BudgetSetup.route) },
                 )
             }
+
+            composable(Screen.BudgetSetup.route) {
+                BudgetSetupScreen(
+                    viewModel = sharedHomeViewModel,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
             composable(Screen.Recurring.route) {
                 RecurringScreen(
-                    viewModel = viewModel(),
+                    viewModel = sharedHomeViewModel,
                     onBack = { navController.navigate(Screen.Home.route) }
                 )
             }
-            composable(Screen.Learning.route) {
-                LearningScreen(viewModel = viewModel())
-            }
-            composable(Screen.History.route) {
-                val context = LocalContext.current
-                val db = AppDatabase.getDatabase(context)
-                val repository = ExpenseRepository(db.expenseDao())
 
+            composable(Screen.Learning.route) {
+                LearningScreen(viewModel = sharedHomeViewModel)
+            }
+
+            composable(Screen.History.route) {
+                val repository = ExpenseRepository(db.expenseDao())
                 val historyViewModel: HistoryViewModel = viewModel(
                     factory = object : ViewModelProvider.Factory {
+                        @Suppress("UNCHECKED_CAST")
                         override fun <T : ViewModel> create(modelClass: Class<T>): T {
                             return HistoryViewModel(repository) as T
                         }
                     }
                 )
-
                 HistoryScreen(
                     viewModel = historyViewModel,
                     onBack = { navController.popBackStack() }
                 )
             }
-            composable(Screen.Stats.route) {
-                val context = LocalContext.current
-                val db = AppDatabase.getDatabase(context)
-                val repo = ExpenseRepository(db.expenseDao())
 
+            composable(Screen.Stats.route) {
+                val repo = ExpenseRepository(db.expenseDao())
                 val statsViewModel = viewModel<StatsViewModel>(
                     factory = object : ViewModelProvider.Factory {
                         @Suppress("UNCHECKED_CAST")
@@ -167,7 +189,6 @@ fun MainApp() {
                         }
                     }
                 )
-
                 StatsScreen(viewModel = statsViewModel)
             }
         }

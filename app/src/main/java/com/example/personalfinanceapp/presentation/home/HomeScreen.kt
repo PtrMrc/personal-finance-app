@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.personalfinanceapp.presentation.home.components.ExpenseDialog
 import com.example.personalfinanceapp.data.Expense
+import com.example.personalfinanceapp.presentation.home.components.BudgetProgressSection
 import com.example.personalfinanceapp.utils.extractAmount
 import com.example.personalfinanceapp.utils.mapToHungarian
 import kotlinx.coroutines.delay
@@ -35,7 +36,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onSeeAllClick: () -> Unit
+    onSeeAllClick: () -> Unit,
+    onBudgetSetupClick: () -> Unit
 ) {
     val errorMessage by viewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -74,6 +76,8 @@ fun HomeScreen(
     var textInput by remember { mutableStateOf("") }
     var showDialog by remember { mutableStateOf(false) }
     var activeExpense by remember { mutableStateOf<Expense?>(null) }
+
+    val budgets by viewModel.budgetProgress.collectAsState()
 
     fun openNewDraft() {
         if (textInput.isBlank()) return
@@ -135,6 +139,22 @@ fun HomeScreen(
                             total = total ?: 0.0,
                             categoryBreakdown = categoryBreakdown
                         )
+                    }
+                }
+
+                // BUDGET SECTION
+                if (budgets.isNotEmpty()) {
+                    item {
+                        AnimatedVisibility(
+                            visible = visible,
+                            enter = fadeIn(animationSpec = tween(600, delayMillis = 250)) +
+                                    slideInVertically(animationSpec = tween(600, delayMillis = 250))
+                        ) {
+                            BudgetProgressSection(
+                                budgets,
+                                onSetupClick = onBudgetSetupClick
+                            )
+                        }
                     }
                 }
 
@@ -443,7 +463,7 @@ fun EnhancedBalanceCard(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Összes kiadás",
+                                text = "Egyenleg",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.White.copy(alpha = 0.9f),
                                 fontWeight = FontWeight.Medium
