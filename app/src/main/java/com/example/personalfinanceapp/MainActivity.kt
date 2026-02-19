@@ -140,7 +140,7 @@ fun MainApp() {
                 val context = LocalContext.current
                 val db = AppDatabase.getDatabase(context)
                 val repository = ExpenseRepository(db.expenseDao())
-                
+
                 val historyViewModel: HistoryViewModel = viewModel(
                     factory = object : ViewModelProvider.Factory {
                         override fun <T : ViewModel> create(modelClass: Class<T>): T {

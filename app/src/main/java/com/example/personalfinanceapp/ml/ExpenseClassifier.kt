@@ -17,9 +17,19 @@ class ExpenseClassifier(private val context: Context) {
     // Confidence threshold: If model is less than 60% sure, we return null
     private val confidenceThreshold = 0.60f
 
-    // MUST match the order from your Python script
-    private val categories = listOf(
+    // TFLite model outputs ENGLISH categories (from training)
+    private val englishCategories = listOf(
         "Food", "Transport", "Entertainment", "Bills", "Health", "Income"
+    )
+
+    // Map English → Hungarian
+    private val categoryMapping = mapOf(
+        "Food" to "Élelmiszer",
+        "Transport" to "Utazás",
+        "Entertainment" to "Szórakozás",
+        "Bills" to "Számlák",
+        "Health" to "Egészség",
+        "Income" to "Bevétel"
     )
 
     init {
@@ -72,7 +82,7 @@ class ExpenseClassifier(private val context: Context) {
         }
 
         // Output: [1, 6] (1 prediction, 6 categories)
-        val outputBuffer = Array(1) { FloatArray(categories.size) }
+        val outputBuffer = Array(1) { FloatArray(englishCategories.size) }
 
         interpreter?.run(inputBuffer, outputBuffer)
 
@@ -84,7 +94,9 @@ class ExpenseClassifier(private val context: Context) {
             return null // Not sure enough
         }
 
-        return categories[maxIndex]
+        // Return Hungarian category instead of English
+        val englishCategory = englishCategories[maxIndex]
+        return categoryMapping[englishCategory] ?: englishCategory
     }
 
     private fun tokenize(text: String): IntArray {
