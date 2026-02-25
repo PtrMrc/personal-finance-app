@@ -52,7 +52,7 @@ fun HistoryScreen(
     }
 
     Scaffold(
-        containerColor = Color(0xFFF8F9FA),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             ModernHistoryTopBar(onBack = onBack)
         }
@@ -79,7 +79,7 @@ fun HistoryScreen(
                                 text = "Időszak szűrése",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1E293B)
+                                color = MaterialTheme.colorScheme.onSurface
                             )
 
                             ModernFilterChips(
@@ -122,18 +122,18 @@ fun HistoryScreen(
                                     text = "Tranzakciók",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E293B)
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "${expenses.size} találat",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color(0xFF64748B)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
 
                             if (expenses.isNotEmpty()) {
                                 Surface(
-                                    color = Color(0xFFF1F5F9),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Row(
@@ -144,13 +144,13 @@ fun HistoryScreen(
                                         Icon(
                                             imageVector = Icons.Default.FilterList,
                                             contentDescription = null,
-                                            tint = Color(0xFF64748B),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Text(
                                             text = getFilterDisplayName(currentFilter),
                                             style = MaterialTheme.typography.labelMedium,
-                                            color = Color(0xFF64748B),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontWeight = FontWeight.Medium
                                         )
                                     }
@@ -191,7 +191,7 @@ fun HistoryScreen(
 fun ModernHistoryTopBar(onBack: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = 2.dp
     ) {
         Row(
@@ -210,14 +210,14 @@ fun ModernHistoryTopBar(onBack: () -> Unit) {
                     modifier = Modifier
                         .size(40.dp)
                         .background(
-                            color = Color(0xFFF1F5F9),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
                             shape = CircleShape
                         )
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Vissza",
-                        tint = Color(0xFF64748B),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -227,12 +227,12 @@ fun ModernHistoryTopBar(onBack: () -> Unit) {
                         text = "Előzmények",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Összes tranzakció",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF64748B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -242,14 +242,14 @@ fun ModernHistoryTopBar(onBack: () -> Unit) {
                 modifier = Modifier
                     .size(40.dp)
                     .background(
-                        color = Color(0xFFF1F5F9),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = CircleShape
                     )
             ) {
                 Icon(
                     Icons.Default.Search,
                     contentDescription = "Keresés",
-                    tint = Color(0xFF64748B),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -265,7 +265,7 @@ fun ModernFilterChips(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -316,11 +316,11 @@ fun FilterChipModern(
     modifier: Modifier = Modifier
 ) {
     val backgroundColor by animateColorAsState(
-        targetValue = if (selected) Color(0xFF6366F1) else Color(0xFFF8F9FA),
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         animationSpec = tween(300)
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) Color.White else Color(0xFF64748B),
+        targetValue = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
         animationSpec = tween(300)
     )
 
@@ -367,7 +367,7 @@ fun HistoryStatsRow(
             title = "Összesen",
             value = "${totalAmount.toInt()} Ft",
             icon = Icons.Default.AccountBalance,
-            color = Color(0xFF6366F1),
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f)
         )
 
@@ -375,7 +375,7 @@ fun HistoryStatsRow(
             title = "Darabszám",
             value = "$transactionCount db",
             icon = Icons.Default.Receipt,
-            color = Color(0xFF10B981),
+            color = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.weight(1f)
         )
 
@@ -383,7 +383,7 @@ fun HistoryStatsRow(
             title = "Átlag",
             value = "${averageAmount.toInt()} Ft",
             icon = Icons.AutoMirrored.Filled.ShowChart,
-            color = Color(0xFFF59E0B),
+            color = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.weight(1f)
         )
     }
@@ -404,7 +404,7 @@ fun HistoryStatCard(
                 shape = RoundedCornerShape(16.dp),
                 spotColor = color.copy(alpha = 0.1f)
             ),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(
@@ -434,7 +434,7 @@ fun HistoryStatCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF64748B),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 10.sp
             )
 
@@ -442,7 +442,7 @@ fun HistoryStatCard(
                 text = value,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B),
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 13.sp
             )
         }
@@ -457,9 +457,9 @@ fun HistoryExpenseCard(expense: Expense) {
             .shadow(
                 elevation = 4.dp,
                 shape = RoundedCornerShape(20.dp),
-                spotColor = Color(0xFF6366F1).copy(alpha = 0.08f)
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
             ),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(20.dp)
     ) {
         Row(
@@ -497,7 +497,7 @@ fun HistoryExpenseCard(expense: Expense) {
                         text = expense.title,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1E293B)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
@@ -507,17 +507,17 @@ fun HistoryExpenseCard(expense: Expense) {
                         Text(
                             text = expense.category,
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF64748B)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Box(
                             modifier = Modifier
                                 .size(4.dp)
-                                .background(Color(0xFF64748B), CircleShape)
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant, CircleShape)
                         )
                         Text(
                             text = formatDate(expense.date),
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF64748B)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -527,7 +527,7 @@ fun HistoryExpenseCard(expense: Expense) {
                 text = "${if (expense.isIncome) "+" else "-"}${expense.amount.toInt()} Ft",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = if (expense.isIncome) Color(0xFF10B981) else Color(0xFF1E293B)
+                color = if (expense.isIncome) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -540,7 +540,7 @@ fun HistoryEmptyState(currentFilter: DateFilter) {
             .fillMaxWidth()
             .padding(vertical = 32.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF8F9FA)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         shape = RoundedCornerShape(20.dp)
     ) {
@@ -555,7 +555,7 @@ fun HistoryEmptyState(currentFilter: DateFilter) {
                 modifier = Modifier
                     .size(80.dp)
                     .background(
-                        color = Color(0xFF6366F1).copy(alpha = 0.1f),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                         shape = CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -563,7 +563,7 @@ fun HistoryEmptyState(currentFilter: DateFilter) {
                 Icon(
                     imageVector = Icons.Default.SearchOff,
                     contentDescription = null,
-                    tint = Color(0xFF6366F1),
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 )
             }
@@ -572,13 +572,13 @@ fun HistoryEmptyState(currentFilter: DateFilter) {
                 text = "Nincs találat",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
                 text = "Nem található tranzakció ebben az időszakban: ${getFilterDisplayName(currentFilter)}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF64748B)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

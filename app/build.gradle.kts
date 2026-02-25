@@ -101,4 +101,6 @@ dependencies {
     implementation(libs.compose)
     implementation(libs.compose.m3)
     implementation(libs.core)
+
+    implementation(libs.androidx.datastore.preferences)
 }

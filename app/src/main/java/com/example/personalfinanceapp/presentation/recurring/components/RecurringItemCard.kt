@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.personalfinanceapp.data.RecurringItem
@@ -40,9 +39,9 @@ fun ModernRecurringItemCard(item: RecurringItem, onDelete: () -> Unit) {
             .shadow(
                 elevation = 4.dp,
                 shape = RoundedCornerShape(20.dp),
-                spotColor = Color(0xFF6366F1).copy(alpha = 0.1f)
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
             ),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(20.dp)
     ) {
         Row(
@@ -51,12 +50,11 @@ fun ModernRecurringItemCard(item: RecurringItem, onDelete: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                // Circular icon placeholder matching the app style
                 Box(
                     modifier = Modifier
                         .size(48.dp)
                         .background(
-                            color = (if (item.isIncome) Color(0xFF10B981) else Color(0xFF6366F1)).copy(alpha = 0.1f),
+                            color = (if (item.isIncome) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary).copy(alpha = 0.1f),
                             shape = RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -64,7 +62,7 @@ fun ModernRecurringItemCard(item: RecurringItem, onDelete: () -> Unit) {
                     Icon(
                         imageVector = if (item.isIncome) Icons.AutoMirrored.Filled.TrendingUp else Icons.Default.EventRepeat,
                         contentDescription = null,
-                        tint = if (item.isIncome) Color(0xFF10B981) else Color(0xFF6366F1)
+                        tint = if (item.isIncome) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
                     )
                 }
 
@@ -75,12 +73,12 @@ fun ModernRecurringItemCard(item: RecurringItem, onDelete: () -> Unit) {
                         text = item.title,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1E293B)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "${mapFrequency(item.frequency)} • Nap: ${item.dayOfMonth}.",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF64748B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -90,7 +88,7 @@ fun ModernRecurringItemCard(item: RecurringItem, onDelete: () -> Unit) {
                     text = "${if (item.isIncome) "+" else "-"}${formatAmount(item.amount)} Ft",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (item.isIncome) Color(0xFF10B981) else Color(0xFF1E293B)
+                    color = if (item.isIncome) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
                 )
                 IconButton(
                     onClick = onDelete,
@@ -99,7 +97,7 @@ fun ModernRecurringItemCard(item: RecurringItem, onDelete: () -> Unit) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Törlés",
-                        tint = Color(0xFFCBD5E1),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp)
                     )
                 }

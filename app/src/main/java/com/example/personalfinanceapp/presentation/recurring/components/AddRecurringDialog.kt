@@ -75,7 +75,7 @@ fun AddRecurringDialog(
         content = {
             Surface(
                 shape = RoundedCornerShape(28.dp),
-                color = Color.White
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -85,7 +85,7 @@ fun AddRecurringDialog(
                         text = "Új állandó tétel",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     // Title Input
@@ -139,7 +139,7 @@ fun AddRecurringDialog(
                         DropdownMenu(
                             expanded = freqExpanded,
                             onDismissRequest = { freqExpanded = false },
-                            modifier = Modifier.background(Color.White)
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                         ) {
                             Frequency.entries.forEach { f ->
                                 DropdownMenuItem(
@@ -152,7 +152,7 @@ fun AddRecurringDialog(
 
                     // Income Toggle Card
                     Surface(
-                        color = if (isIncome) Color(0xFF10B981).copy(alpha = 0.1f) else Color(0xFFF1F5F9),
+                        color = if (isIncome) MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -165,13 +165,13 @@ fun AddRecurringDialog(
                             Checkbox(
                                 checked = isIncome,
                                 onCheckedChange = { isIncome = it },
-                                colors = CheckboxDefaults.colors(checkedColor = Color(0xFF10B981))
+                                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.secondary)
                             )
                             Text(
                                 text = "Bevétel",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
-                                color = if (isIncome) Color(0xFF059669) else Color(0xFF64748B)
+                                color = if (isIncome) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -188,7 +188,7 @@ fun AddRecurringDialog(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Mégse", color = Color(0xFF64748B))
+                            Text("Mégse", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Button(
                             onClick = {
@@ -205,7 +205,7 @@ fun AddRecurringDialog(
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1)),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text("Mentés", fontWeight = FontWeight.Bold)

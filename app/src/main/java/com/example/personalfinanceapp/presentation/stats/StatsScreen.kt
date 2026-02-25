@@ -45,7 +45,6 @@ enum class TimePeriod(val displayName: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(viewModel: StatsViewModel) {
-    // State
     val total by viewModel.totalThisWeek.collectAsState()
     val categoryBreakdown by viewModel.categoryBreakdown.collectAsState()
     val averageDaily by viewModel.averageDailySpending.collectAsState()
@@ -56,7 +55,6 @@ fun StatsScreen(viewModel: StatsViewModel) {
     var selectedPeriod by remember { mutableStateOf(TimePeriod.WEEK) }
     var showDetails by remember { mutableStateOf(false) }
 
-    // Animation
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(100)
@@ -66,19 +64,11 @@ fun StatsScreen(viewModel: StatsViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFF8F9FA),
-                        Color(0xFFE9ECEF)
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // HEADER WITH ANIMATION
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn() + slideInVertically()
@@ -88,17 +78,16 @@ fun StatsScreen(viewModel: StatsViewModel) {
                     text = "Pénzügyi Áttekintés",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Részletes statisztikák és trendek",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF64748B)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        // TIME PERIOD SELECTOR
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn(animationSpec = tween(600, delayMillis = 100)) +
@@ -110,7 +99,6 @@ fun StatsScreen(viewModel: StatsViewModel) {
             )
         }
 
-        // SUMMARY CARDS ROW
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn(animationSpec = tween(600, delayMillis = 200)) +
@@ -120,29 +108,26 @@ fun StatsScreen(viewModel: StatsViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Total Spending Card
                 SummaryCard(
                     modifier = Modifier.weight(1f),
                     title = "Összes költés",
                     value = "${total.toInt()} Ft",
                     icon = Icons.Default.AccountBalance,
-                    color = Color(0xFF6366F1),
+                    color = MaterialTheme.colorScheme.primary,
                     trend = null
                 )
 
-                // Average Daily Card
                 SummaryCard(
                     modifier = Modifier.weight(1f),
                     title = "Napi átlag",
                     value = "${averageDaily.toInt()} Ft",
                     icon = Icons.Default.CalendarToday,
-                    color = Color(0xFF8B5CF6),
+                    color = MaterialTheme.colorScheme.tertiary,
                     trend = null
                 )
             }
         }
 
-        // FORECAST CARD
         AnimatedVisibility(
             visible = visible && forecast != null && transactionCount > 3,
             enter = fadeIn(tween(600, 250)) + slideInVertically(tween(600, 250))
@@ -152,7 +137,6 @@ fun StatsScreen(viewModel: StatsViewModel) {
             }
         }
 
-        // MAIN CHART
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn(animationSpec = tween(600, delayMillis = 300)) +
@@ -161,7 +145,6 @@ fun StatsScreen(viewModel: StatsViewModel) {
             ChartCard(viewModel = viewModel, period = selectedPeriod)
         }
 
-        // CATEGORY BREAKDOWN
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn(animationSpec = tween(600, delayMillis = 400)) +
@@ -175,7 +158,6 @@ fun StatsScreen(viewModel: StatsViewModel) {
             )
         }
 
-        // TOP SPENDING INSIGHT
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn(animationSpec = tween(600, delayMillis = 500)) +
@@ -187,12 +169,11 @@ fun StatsScreen(viewModel: StatsViewModel) {
                     title = "Legnagyobb kiadás",
                     message = "A legtöbbet ${currentTopCategory.first} kategóriában költöttél: ${currentTopCategory.second.toInt()} Ft",
                     icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    color = Color(0xFFEF4444)
+                    color = MaterialTheme.colorScheme.error
                 )
             }
         }
 
-        // AI PREDICTION CARD
         AnimatedVisibility(
             visible = visible,
             enter = fadeIn(animationSpec = tween(600, delayMillis = 600)) +
@@ -210,7 +191,7 @@ fun TimePeriodSelector(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -238,11 +219,11 @@ fun PeriodChip(
     onClick: () -> Unit
 ) {
     val backgroundColor by animateColorAsState(
-        targetValue = if (selected) Color(0xFF6366F1) else Color(0xFFF1F5F9),
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         animationSpec = tween(300)
     )
     val textColor by animateColorAsState(
-        targetValue = if (selected) Color.White else Color(0xFF64748B),
+        targetValue = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
         animationSpec = tween(300)
     )
 
@@ -280,7 +261,7 @@ fun SummaryCard(
                 spotColor = color.copy(alpha = 0.2f)
             ),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         shape = RoundedCornerShape(20.dp)
     ) {
@@ -317,7 +298,7 @@ fun SummaryCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF64748B),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Medium
             )
 
@@ -327,7 +308,7 @@ fun SummaryCard(
                 text = value,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             if (trend != null) {
@@ -335,7 +316,7 @@ fun SummaryCard(
                 Text(
                     text = trend,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF10B981)
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
         }
@@ -350,9 +331,9 @@ fun ChartCard(viewModel: StatsViewModel, period: TimePeriod) {
             .shadow(
                 elevation = 8.dp,
                 shape = RoundedCornerShape(20.dp),
-                spotColor = Color(0xFF6366F1).copy(alpha = 0.1f)
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
             ),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -366,26 +347,25 @@ fun ChartCard(viewModel: StatsViewModel, period: TimePeriod) {
                         text = "Kiadások trendje",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Elmúlt ${period.displayName.lowercase()}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF64748B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ShowChart,
                     contentDescription = null,
-                    tint = Color(0xFF6366F1),
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(28.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Vico Chart
             val cartesianChart = rememberCartesianChart(
                 rememberColumnCartesianLayer(),
                 startAxis = VerticalAxis.rememberStart(),
@@ -418,9 +398,9 @@ fun CategoryBreakdownCard(
             .shadow(
                 elevation = 8.dp,
                 shape = RoundedCornerShape(20.dp),
-                spotColor = Color(0xFF8B5CF6).copy(alpha = 0.1f)
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
             ),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -436,7 +416,7 @@ fun CategoryBreakdownCard(
                         modifier = Modifier
                             .size(40.dp)
                             .background(
-                                color = Color(0xFF8B5CF6).copy(alpha = 0.1f),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                 shape = CircleShape
                             ),
                         contentAlignment = Alignment.Center
@@ -444,7 +424,7 @@ fun CategoryBreakdownCard(
                         Icon(
                             imageVector = Icons.Default.PieChart,
                             contentDescription = null,
-                            tint = Color(0xFF8B5CF6),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -453,14 +433,14 @@ fun CategoryBreakdownCard(
                         text = "Kategória bontás",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint = Color(0xFF64748B)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -508,14 +488,14 @@ fun CategoryItem(
                     text = name,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
-                    color = Color(0xFF1E293B)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
             Text(
                 text = "${amount.toInt()} Ft",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
 
@@ -538,7 +518,7 @@ fun CategoryItem(
             Text(
                 text = "${percentage.toInt()}%",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF64748B),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Medium
             )
         }
@@ -561,13 +541,14 @@ fun InsightCard(
                 spotColor = color.copy(alpha = 0.1f)
             ),
         colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.05f)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         shape = RoundedCornerShape(20.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(color.copy(alpha = 0.05f))
                 .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -601,7 +582,7 @@ fun InsightCard(
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF1E293B)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -615,7 +596,7 @@ fun AiPredictionCard() {
     LaunchedEffect(Unit) {
         while (true) {
             delay(2000)
-            progress = kotlin.random.Random.nextFloat() * 0.3f + 0.6f // Random between 0.6 and 0.9
+            progress = kotlin.random.Random.nextFloat() * 0.3f + 0.6f
         }
     }
 
@@ -625,10 +606,10 @@ fun AiPredictionCard() {
             .shadow(
                 elevation = 12.dp,
                 shape = RoundedCornerShape(20.dp),
-                spotColor = Color(0xFF3B82F6).copy(alpha = 0.2f)
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
             ),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         shape = RoundedCornerShape(20.dp)
     ) {
@@ -636,10 +617,10 @@ fun AiPredictionCard() {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    brush = Brush.horizontalGradient(
+                    brush = Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFFDEEAFF),
-                            Color(0xFFE0E7FF)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            Color.Transparent
                         )
                     )
                 )
@@ -655,8 +636,8 @@ fun AiPredictionCard() {
                             .background(
                                 brush = Brush.linearGradient(
                                     colors = listOf(
-                                        Color(0xFF6366F1),
-                                        Color(0xFF8B5CF6)
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.tertiary
                                     )
                                 ),
                                 shape = CircleShape
@@ -666,7 +647,7 @@ fun AiPredictionCard() {
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = "AI",
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -676,12 +657,12 @@ fun AiPredictionCard() {
                             text = "AI Előrejelzés",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E293B)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Gépi tanulás alapú elemzés",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF64748B)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -690,7 +671,7 @@ fun AiPredictionCard() {
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -702,13 +683,13 @@ fun AiPredictionCard() {
                             Text(
                                 text = "Modell betanítása",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF1E293B),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
                                 text = "${(progress * 100).toInt()}%",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF6366F1),
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -726,8 +707,8 @@ fun AiPredictionCard() {
                                 .fillMaxWidth()
                                 .height(10.dp)
                                 .clip(RoundedCornerShape(5.dp)),
-                            color = Color(0xFF6366F1),
-                            trackColor = Color(0xFFE2E8F0),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -735,7 +716,7 @@ fun AiPredictionCard() {
                         Text(
                             text = "A rendszer hamarosan képes lesz előre jelezni következő heti kiadásaidat és személyre szabott pénzügyi tanácsokat adni.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF64748B),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.4
                         )
                     }
@@ -758,7 +739,7 @@ fun AiPredictionCard() {
 @Composable
 fun FeatureChip(text: String, icon: ImageVector) {
     Surface(
-        color = Color.White.copy(alpha = 0.8f),
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(8.dp)
     ) {
         Row(
@@ -769,20 +750,19 @@ fun FeatureChip(text: String, icon: ImageVector) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color(0xFF6366F1),
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(16.dp)
             )
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF1E293B),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Medium
             )
         }
     }
 }
 
-// Helper function to assign colors to categories
 fun getCategoryColor(category: String): Color {
     return when (category.lowercase()) {
         "étel", "food" -> Color(0xFFEF4444)

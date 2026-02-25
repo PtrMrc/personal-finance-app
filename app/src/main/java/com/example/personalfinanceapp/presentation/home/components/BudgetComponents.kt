@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.personalfinanceapp.presentation.home.BudgetProgress
@@ -41,12 +40,12 @@ fun BudgetProgressSection(
                     text = "Havi Költségvetés",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Kövesd nyomon a kiadásaid",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF64748B)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -55,12 +54,12 @@ fun BudgetProgressSection(
                 onClick = onSetupClick,
                 modifier = Modifier
                     .size(40.dp)
-                    .background(Color(0xFFF1F5F9), CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
             ) {
                 Icon(
                     Icons.Default.Settings,
                     contentDescription = "Beállítások",
-                    tint = Color(0xFF64748B),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -69,10 +68,9 @@ fun BudgetProgressSection(
         Spacer(modifier = Modifier.height(16.dp))
 
         if (budgets.isEmpty()) {
-            // Empty State Card
             Card(
                 modifier = Modifier.fillMaxWidth().clickable { onSetupClick() },
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
@@ -82,18 +80,17 @@ fun BudgetProgressSection(
                     Text(
                         "Nincs beállítva limit",
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         "Kattints ide a beállításhoz",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF6366F1),
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
         } else {
-            // Existing progress bars
             budgets.forEach { progress ->
                 BudgetProgressBar(progress)
                 Spacer(modifier = Modifier.height(12.dp))
@@ -105,9 +102,9 @@ fun BudgetProgressSection(
 @Composable
 fun BudgetProgressBar(progress: BudgetProgress) {
     val progressColor = when {
-        progress.isExceeded -> Color(0xFFEF4444) // Red
-        progress.isWarning -> Color(0xFFF59E0B)  // Orange
-        else -> Color(0xFF10B981)                // Green
+        progress.isExceeded -> MaterialTheme.colorScheme.error
+        progress.isWarning -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.secondary
     }
 
     val animatedProgress by animateFloatAsState(
@@ -118,7 +115,7 @@ fun BudgetProgressBar(progress: BudgetProgress) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White, RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
         Row(
@@ -127,7 +124,7 @@ fun BudgetProgressBar(progress: BudgetProgress) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Icon based on category (reusing your helper)
+                // Icon based on category
                 Box(
                     modifier = Modifier
                         .size(32.dp)
@@ -145,7 +142,8 @@ fun BudgetProgressBar(progress: BudgetProgress) {
                 Text(
                     text = progress.category,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -166,7 +164,7 @@ fun BudgetProgressBar(progress: BudgetProgress) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
-                .background(Color(0xFFE2E8F0), RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
         ) {
             Box(
                 modifier = Modifier
@@ -191,7 +189,7 @@ fun BudgetProgressBar(progress: BudgetProgress) {
             Text(
                 text = "/ ${formatAmount(progress.limit)} Ft",
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

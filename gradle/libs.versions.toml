@@ -1,6 +1,7 @@
 [versions]
 agp = "9.0.1"
 compose = "2.4.3"
+datastorePreferences = "1.2.0"
 desugar_jdk_libs = "2.1.5"
 kotlin = "2.3.0"
 coreKtx = "1.17.0"
@@ -23,6 +24,7 @@ junitJunit = "4.12"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomRuntime" }

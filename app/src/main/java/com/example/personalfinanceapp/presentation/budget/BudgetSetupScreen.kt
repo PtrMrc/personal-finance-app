@@ -34,7 +34,6 @@ fun BudgetSetupScreen(
 ) {
     val budgets by viewModel.budgetProgress.collectAsState()
 
-    // Form State
     var selectedCategory by remember { mutableStateOf("Összesen") }
     var expanded by remember { mutableStateOf(false) }
     var limitInput by remember { mutableStateOf("") }
@@ -43,11 +42,11 @@ fun BudgetSetupScreen(
     val categories = listOf("Összesen", "Élelmiszer", "Utazás", "Szórakozás", "Számlák", "Egészség", "Egyéb")
 
     Scaffold(
-        containerColor = Color(0xFFF8F9FA),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 2.dp
             ) {
                 Row(
@@ -56,9 +55,9 @@ fun BudgetSetupScreen(
                 ) {
                     IconButton(
                         onClick = onBack,
-                        modifier = Modifier.size(40.dp).background(Color(0xFFF1F5F9), CircleShape)
+                        modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Vissza", tint = Color(0xFF64748B))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Vissza", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
@@ -66,12 +65,12 @@ fun BudgetSetupScreen(
                             text = "Költségvetések",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E293B)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Kiadási limitek beállítása",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF64748B)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -83,11 +82,10 @@ fun BudgetSetupScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // --- 1. ADD NEW BUDGET FORM ---
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(20.dp)),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -95,10 +93,9 @@ fun BudgetSetupScreen(
                             text = "Új limit hozzáadása",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E293B)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
-                        // Category Dropdown
                         Box {
                             OutlinedTextField(
                                 value = selectedCategory,
@@ -114,7 +111,7 @@ fun BudgetSetupScreen(
                             DropdownMenu(
                                 expanded = expanded,
                                 onDismissRequest = { expanded = false },
-                                modifier = Modifier.background(Color.White)
+                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                             ) {
                                 categories.forEach { cat ->
                                     DropdownMenuItem(
@@ -125,7 +122,6 @@ fun BudgetSetupScreen(
                             }
                         }
 
-                        // Limit Input
                         OutlinedTextField(
                             value = limitInput,
                             onValueChange = { limitInput = it; limitError = null },
@@ -137,7 +133,6 @@ fun BudgetSetupScreen(
                             supportingText = limitError?.let { { Text(it) } }
                         )
 
-                        // Save Button
                         Button(
                             onClick = {
                                 val validation = Validation.validateAmount(limitInput)
@@ -146,26 +141,24 @@ fun BudgetSetupScreen(
                                 } else {
                                     viewModel.setBudget(selectedCategory, limitInput.toDouble())
                                     limitInput = ""
-                                    // Reset to default or keep it to add more
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(50.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
-                            Text("Mentés", fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Mentés", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                         }
                     }
                 }
             }
 
-            // --- 2. ACTIVE BUDGETS LIST ---
             item {
                 Text(
                     text = "Aktív limitek",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B),
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
@@ -174,7 +167,7 @@ fun BudgetSetupScreen(
                 item {
                     Text(
                         text = "Még nincsenek beállítva költségvetési limitek.",
-                        color = Color(0xFF64748B),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -182,7 +175,7 @@ fun BudgetSetupScreen(
                 items(budgets, key = { it.category }) { budget ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         shape = RoundedCornerShape(16.dp),
                         elevation = CardDefaults.cardElevation(2.dp)
                     ) {
@@ -196,20 +189,20 @@ fun BudgetSetupScreen(
                                     text = budget.category,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E293B)
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "Keret: ${formatAmount(budget.limit)} Ft",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = Color(0xFF64748B)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
 
                             IconButton(
                                 onClick = { viewModel.deleteBudget(budget.category) },
-                                modifier = Modifier.background(Color(0xFFEF4444).copy(alpha = 0.1f), CircleShape)
+                                modifier = Modifier.background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f), CircleShape)
                             ) {
-                                Icon(Icons.Default.Delete, contentDescription = "Törlés", tint = Color(0xFFEF4444))
+                                Icon(Icons.Default.Delete, contentDescription = "Törlés", tint = MaterialTheme.colorScheme.error)
                             }
                         }
                     }

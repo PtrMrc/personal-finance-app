@@ -35,7 +35,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.personalfinanceapp.presentation.recurring.components.AddRecurringDialog
@@ -54,7 +53,6 @@ fun RecurringScreen(
     val items by viewModel.allRecurringItems.collectAsState(initial = emptyList())
     var showAddDialog by remember { mutableStateOf(false) }
 
-    // Animation state
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(100)
@@ -62,13 +60,12 @@ fun RecurringScreen(
     }
 
     Scaffold(
-        containerColor = Color(0xFFF8F9FA),
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            // Modernized FAB to match the Indigo/Violet theme
             FloatingActionButton(
                 onClick = { showAddDialog = true },
-                containerColor = Color(0xFF6366F1),
-                contentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = CircleShape,
                 modifier = Modifier.padding(bottom = 16.dp, end = 8.dp)
             ) {
@@ -80,10 +77,9 @@ fun RecurringScreen(
             .fillMaxSize()
             .padding(padding)) {
 
-            // --- Modern Header ---
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 2.dp
             ) {
                 Row(
@@ -94,7 +90,7 @@ fun RecurringScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = null,
-                            tint = Color(0xFF64748B)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Column(modifier = Modifier.padding(start = 8.dp)) {
@@ -102,12 +98,12 @@ fun RecurringScreen(
                             text = "Állandó tételek",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E293B)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Automatikus havi tranzakciók",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF64748B)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -120,7 +116,6 @@ fun RecurringScreen(
             ) {
                 if (items.isEmpty()) {
                     item {
-                        // Reuse the EmptyStateCard logic but themed for recurring
                         Box(Modifier.padding(top = 40.dp)) {
                             EmptyStateCard()
                         }

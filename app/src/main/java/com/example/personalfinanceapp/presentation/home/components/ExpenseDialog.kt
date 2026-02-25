@@ -77,23 +77,19 @@ fun ExpenseDialog(
     var titleError by remember { mutableStateOf<String?>(null) }
     var amountError by remember { mutableStateOf<String?>(null) }
 
-    // Dropdown State
     var expanded by remember { mutableStateOf(false) }
     val categories = listOf("Élelmiszer", "Utazás", "Szórakozás", "Számlák", "Egészség", "Bevétel", "Egyéb")
 
-    // AI State
     var currentPrediction by remember { mutableStateOf<EnsemblePrediction?>(null) }
     var showLearning by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // AI: Predict when title changes
     LaunchedEffect(title) {
         if (title.length >= 3) {
-            delay(500) // Debounce: Wait for typing to stop
+            delay(500)
             val prediction = viewModel.predictCategoryEnsemble(title)
             currentPrediction = prediction
 
-            // Auto-select category if it's "Unknown" or empty
             if (category.isEmpty() || category == "Egyéb") {
                 category = prediction.finalCategory
             }
@@ -108,9 +104,8 @@ fun ExpenseDialog(
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.verticalScroll(rememberScrollState()) // Allow scrolling if AI card is tall
+                modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
-                // Title
                 OutlinedTextField(
                     value = title,
                     onValueChange = {
@@ -124,7 +119,6 @@ fun ExpenseDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // AI: Prediction Card
                 AnimatedVisibility(
                     visible = currentPrediction != null,
                     enter = fadeIn() + expandVertically(),
@@ -135,7 +129,6 @@ fun ExpenseDialog(
                     }
                 }
 
-                // Amount
                 OutlinedTextField(
                     value = amount,
                     onValueChange = {
@@ -158,7 +151,6 @@ fun ExpenseDialog(
                     )
                 }
 
-                // Category Dropdown
                 Box {
                     OutlinedTextField(
                         value = category,
@@ -178,15 +170,12 @@ fun ExpenseDialog(
                             DropdownMenuItem(
                                 text = { Text(cat) },
                                 onClick = {
-                                    // 3. AI: Feedback Loop
-                                    // If user changes category manually, teach the AI
                                     if (currentPrediction != null && cat != category) {
                                         viewModel.recordCategoryChoice(
                                             title = title,
                                             ensemblePrediction = currentPrediction!!,
                                             userChoice = cat
                                         )
-                                        // Trigger "Learning" animation
                                         scope.launch {
                                             showLearning = true
                                             delay(2500)
@@ -201,7 +190,6 @@ fun ExpenseDialog(
                     }
                 }
 
-                // 4. AI: Learning Indicator
                 AnimatedVisibility(
                     visible = showLearning,
                     enter = fadeIn() + expandVertically(),
@@ -233,7 +221,6 @@ fun ExpenseDialog(
                     }
                 }
 
-                // Description
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
@@ -255,7 +242,6 @@ fun ExpenseDialog(
                     if (titleValidation is ValidationResult.Success && amountValidation is ValidationResult.Success) {
                         val amt = amount.toDouble()
 
-                        // 5. AI: Reinforce the final choice on save
                         if (currentPrediction != null) {
                             viewModel.recordCategoryChoice(
                                 title = title,
@@ -279,8 +265,6 @@ fun ExpenseDialog(
     )
 }
 
-// --- HELPER COMPONENTS ---
-
 @Composable
 fun AIPredictionCard(
     prediction: EnsemblePrediction,
@@ -294,7 +278,6 @@ fun AIPredictionCard(
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // Header
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Psychology,
@@ -319,7 +302,6 @@ fun AIPredictionCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Models
             prediction.tflitePrediction?.let { tflite ->
                 ModelPredictionRow(
                     modelName = "🤖 Robot",
@@ -362,7 +344,7 @@ private fun ModelPredictionRow(
         Text(
             text = modelName,
             style = MaterialTheme.typography.bodySmall,
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.width(100.dp)
         )
         Text(
@@ -371,12 +353,11 @@ private fun ModelPredictionRow(
             fontWeight = if (isWinner) FontWeight.Bold else FontWeight.Normal,
             modifier = Modifier.weight(1f)
         )
-        // Only show weight if meaningful
         if (weight > 0) {
             Text(
                 text = "${(weight * 100).toInt()}%",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

@@ -37,7 +37,8 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     viewModel: HomeViewModel,
     onSeeAllClick: () -> Unit,
-    onBudgetSetupClick: () -> Unit
+    onBudgetSetupClick: () -> Unit,
+    onDarkModeToggle: () -> Unit = {}
 ) {
     val errorMessage by viewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -106,7 +107,7 @@ fun HomeScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color(0xFFF8F9FA)
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -118,7 +119,7 @@ fun HomeScreen(
                 visible = visible,
                 enter = fadeIn() + slideInVertically()
             ) {
-                ModernHeader()
+                ModernHeader(onDarkModeToggle = onDarkModeToggle)
             }
 
             LazyColumn(
@@ -190,12 +191,12 @@ fun HomeScreen(
                                     text = "Legutóbbi tranzakciók",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E293B)
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "${recentExpenses.size} tranzakció",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color(0xFF64748B)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
 
@@ -203,14 +204,14 @@ fun HomeScreen(
                                 TextButton(onClick = onSeeAllClick) {
                                     Text(
                                         text = "Mind",
-                                        color = Color(0xFF6366F1),
+                                        color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                         contentDescription = null,
-                                        tint = Color(0xFF6366F1),
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -253,7 +254,7 @@ fun HomeScreen(
                             enableDismissFromStartToEnd = false,
                             backgroundContent = {
                                 val color = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart)
-                                    Color(0xFFEF4444) else Color.Transparent
+                                    MaterialTheme.colorScheme.error else Color.Transparent
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -268,12 +269,12 @@ fun HomeScreen(
                                         Icon(
                                             Icons.Default.Delete,
                                             "Delete",
-                                            tint = Color.White,
+                                            tint = MaterialTheme.colorScheme.onError,
                                             modifier = Modifier.size(28.dp)
                                         )
                                         Text(
                                             "Törlés",
-                                            color = Color.White,
+                                            color = MaterialTheme.colorScheme.onError,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Medium
                                         )
@@ -346,10 +347,10 @@ fun HomeScreen(
 }
 
 @Composable
-fun ModernHeader() {
+fun ModernHeader(onDarkModeToggle: () -> Unit = {}) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = 2.dp
     ) {
         Row(
@@ -364,12 +365,12 @@ fun ModernHeader() {
                     text = "Áttekintés",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Pénzügyi aktivitásod",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF64748B)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -382,31 +383,31 @@ fun ModernHeader() {
                     modifier = Modifier
                         .size(40.dp)
                         .background(
-                            color = Color(0xFFF1F5F9),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
                             shape = CircleShape
                         )
                 ) {
                     Icon(
                         Icons.Default.Search,
                         contentDescription = "Search",
-                        tint = Color(0xFF64748B),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }
 
                 IconButton(
-                    onClick = { },
+                    onClick = onDarkModeToggle,
                     modifier = Modifier
                         .size(40.dp)
                         .background(
-                            color = Color(0xFFF1F5F9),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
                             shape = CircleShape
                         )
                 ) {
                     Icon(
-                        Icons.Default.Notifications,
-                        contentDescription = "Notifications",
-                        tint = Color(0xFF64748B),
+                        Icons.Default.DarkMode,
+                        contentDescription = "Sötét mód",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -424,21 +425,22 @@ fun EnhancedBalanceCard(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 12.dp,
+                elevation = 8.dp,
                 shape = RoundedCornerShape(24.dp),
-                spotColor = Color(0xFF6366F1).copy(alpha = 0.2f)
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
             ),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(24.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                // A very subtle, elegant gradient overlay that adapts to light/dark mode
                 .background(
-                    brush = Brush.horizontalGradient(
+                    brush = Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFF6366F1),
-                            Color(0xFF8B5CF6)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            Color.Transparent
                         )
                     )
                 )
@@ -458,33 +460,35 @@ fun EnhancedBalanceCard(
                             Icon(
                                 imageVector = Icons.Default.AccountBalanceWallet,
                                 contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.8f),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Egyenleg",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.9f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Medium
                             )
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
+                        // The balance is now the hero, using the Primary color so it pops!
                         Text(
                             text = "${total.toInt()} Ft",
                             style = MaterialTheme.typography.displaySmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
 
+                    // A softer icon container
                     Box(
                         modifier = Modifier
                             .size(56.dp)
                             .background(
-                                color = Color.White.copy(alpha = 0.2f),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                 shape = CircleShape
                             ),
                         contentAlignment = Alignment.Center
@@ -492,13 +496,13 @@ fun EnhancedBalanceCard(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(28.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Quick category indicators
                 if (categoryBreakdown.isNotEmpty()) {
@@ -532,7 +536,8 @@ fun CategoryPill(
 ) {
     Surface(
         modifier = modifier,
-        color = Color.White.copy(alpha = 0.2f),
+        // Adapting the pill to look clean in both modes
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
@@ -542,14 +547,15 @@ fun CategoryPill(
             Text(
                 text = category,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 10.sp,
                 maxLines = 1
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "${amount.toInt()} Ft",
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
                 fontSize = 11.sp
             )
@@ -570,7 +576,7 @@ fun QuickStatsRow(
             title = "Tranzakciók",
             value = "$transactionCount db",
             icon = Icons.Default.Receipt,
-            color = Color(0xFF10B981),
+            color = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.weight(1f)
         )
 
@@ -578,7 +584,7 @@ fun QuickStatsRow(
             title = "Átlag",
             value = "${averageSpending.toInt()} Ft",
             icon = Icons.AutoMirrored.Filled.ShowChart,
-            color = Color(0xFFF59E0B),
+            color = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.weight(1f)
         )
     }
@@ -599,7 +605,7 @@ fun QuickStatCard(
                 shape = RoundedCornerShape(16.dp),
                 spotColor = color.copy(alpha = 0.1f)
             ),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(
@@ -613,14 +619,14 @@ fun QuickStatCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF64748B)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = value,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -652,9 +658,9 @@ fun EnhancedExpenseCard(expense: Expense) {
             .shadow(
                 elevation = 4.dp,
                 shape = RoundedCornerShape(20.dp),
-                spotColor = Color(0xFF6366F1).copy(alpha = 0.08f)
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
             ),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(20.dp)
     ) {
         Row(
@@ -692,7 +698,7 @@ fun EnhancedExpenseCard(expense: Expense) {
                         text = expense.title,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1E293B)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
@@ -702,17 +708,17 @@ fun EnhancedExpenseCard(expense: Expense) {
                         Text(
                             text = expense.category,
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF64748B)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Box(
                             modifier = Modifier
                                 .size(4.dp)
-                                .background(Color(0xFF64748B), CircleShape)
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant, CircleShape)
                         )
                         Text(
                             text = formatDate(expense.date),
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF64748B)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -722,7 +728,7 @@ fun EnhancedExpenseCard(expense: Expense) {
                 text = "${if (expense.isIncome) "+" else "-"}${expense.amount.toInt()} Ft",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = if (expense.isIncome) Color(0xFF10B981) else Color(0xFF1E293B)
+                color = if (expense.isIncome) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -735,7 +741,7 @@ fun EmptyStateCard() {
             .fillMaxWidth()
             .padding(vertical = 32.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF8F9FA)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         shape = RoundedCornerShape(20.dp)
     ) {
@@ -750,7 +756,7 @@ fun EmptyStateCard() {
                 modifier = Modifier
                     .size(80.dp)
                     .background(
-                        color = Color(0xFF6366F1).copy(alpha = 0.1f),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                         shape = CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -758,7 +764,7 @@ fun EmptyStateCard() {
                 Icon(
                     imageVector = Icons.Default.Receipt,
                     contentDescription = null,
-                    tint = Color(0xFF6366F1),
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 )
             }
@@ -767,13 +773,13 @@ fun EmptyStateCard() {
                 text = "Még nincs tranzakció",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
                 text = "Kezdd el az első kiadásod rögzítését!",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF64748B)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -789,7 +795,7 @@ fun ModernInputArea(
         modifier = Modifier.fillMaxWidth(),
         tonalElevation = 8.dp,
         shadowElevation = 12.dp,
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Row(
@@ -812,23 +818,23 @@ fun ModernInputArea(
                 placeholder = {
                     Text(
                         "pl. Tesco 3500",
-                        color = Color(0xFF94A3B8)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                 },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF6366F1),
-                    unfocusedBorderColor = Color(0xFFE2E8F0),
-                    focusedLabelColor = Color(0xFF6366F1),
-                    unfocusedLabelColor = Color(0xFF64748B)
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = null,
-                        tint = Color(0xFF64748B),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -840,7 +846,7 @@ fun ModernInputArea(
                 contentPadding = PaddingValues(0.dp),
                 modifier = Modifier.size(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF6366F1)
+                    containerColor = MaterialTheme.colorScheme.primary
                 ),
                 elevation = ButtonDefaults.buttonElevation(
                     defaultElevation = 4.dp,
@@ -850,7 +856,7 @@ fun ModernInputArea(
                 Icon(
                     Icons.AutoMirrored.Filled.Send,
                     contentDescription = "Rögzítés",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }
@@ -866,13 +872,13 @@ fun ModernDeleteDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(24.dp),
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         icon = {
             Box(
                 modifier = Modifier
                     .size(56.dp)
                     .background(
-                        color = Color(0xFFEF4444).copy(alpha = 0.1f),
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
                         shape = CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -880,7 +886,7 @@ fun ModernDeleteDialog(
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = null,
-                    tint = Color(0xFFEF4444),
+                    tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -890,25 +896,29 @@ fun ModernDeleteDialog(
                 text = "Törlés megerősítése",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
+                color = MaterialTheme.colorScheme.onSurface
             )
         },
         text = {
             Text(
                 text = "Biztosan törlöd: \"$expenseTitle\"?",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF64748B)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
         confirmButton = {
             Button(
                 onClick = onConfirm,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFEF4444)
+                    containerColor = MaterialTheme.colorScheme.error
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Törlés", fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Törlés",
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onError
+                )
             }
         },
         dismissButton = {
@@ -918,7 +928,7 @@ fun ModernDeleteDialog(
             ) {
                 Text(
                     "Mégse",
-                    color = Color(0xFF64748B),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -926,7 +936,6 @@ fun ModernDeleteDialog(
     )
 }
 
-// Helper functions
 fun getCategoryColor(category: String): Color {
     return when (category.lowercase()) {
         "étel", "food" -> Color(0xFFEF4444)

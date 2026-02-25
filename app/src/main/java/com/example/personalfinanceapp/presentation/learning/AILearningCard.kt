@@ -52,7 +52,7 @@ fun AILearningCard(viewModel: HomeViewModel) {
             .fillMaxWidth()
             .shadow(4.dp, RoundedCornerShape(20.dp))
             .clickable { expanded = !expanded },
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -64,13 +64,13 @@ fun AILearningCard(viewModel: HomeViewModel) {
                 Box(
                     modifier = Modifier
                         .size(50.dp)
-                        .background(Color(0xFF6366F1).copy(alpha = 0.1f), CircleShape),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Psychology,
                         contentDescription = null,
-                        tint = Color(0xFF6366F1)
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -78,18 +78,18 @@ fun AILearningCard(viewModel: HomeViewModel) {
                     Text(
                         text = "AI Tanulási Folyamat",
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Hogyan lesz az AI egyre okosabb",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF64748B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Icon(
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = if (expanded) "Bezárás" else "Megnyitás",
-                    tint = Color(0xFFCBD5E1)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
             }
 
@@ -99,7 +99,7 @@ fun AILearningCard(viewModel: HomeViewModel) {
                 enter = fadeIn() + expandVertically()
             ) {
                 Column(modifier = Modifier.padding(top = 16.dp)) {
-                    Divider(color = Color(0xFFE2E8F0))
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -108,12 +108,12 @@ fun AILearningCard(viewModel: HomeViewModel) {
                         text = "Modell súlyok",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Mennyire bízik az AI az egyes modellekben",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF64748B),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
 
@@ -121,13 +121,13 @@ fun AILearningCard(viewModel: HomeViewModel) {
                     WeightBar(
                         label = "🤖 TFLite",
                         weight = stats.tfliteWeight,
-                        color = Color(0xFF6366F1)
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     WeightBar(
                         label = "📊 Saját történeted",
                         weight = stats.naiveBayesWeight,
-                        color = Color(0xFF10B981)
+                        color = MaterialTheme.colorScheme.secondary
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -154,7 +154,7 @@ fun AILearningCard(viewModel: HomeViewModel) {
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    Divider(color = Color(0xFFE2E8F0))
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // How it works
@@ -162,7 +162,7 @@ fun AILearningCard(viewModel: HomeViewModel) {
                         text = "Hogyan működik?",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B),
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
 
@@ -187,7 +187,7 @@ fun AILearningCard(viewModel: HomeViewModel) {
 
                     // Tips
                     Surface(
-                        color = Color(0xFFFEF3C7),
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -198,7 +198,7 @@ fun AILearningCard(viewModel: HomeViewModel) {
                             Icon(
                                 Icons.Default.Lightbulb,
                                 contentDescription = null,
-                                tint = Color(0xFFF59E0B),
+                                tint = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -207,13 +207,13 @@ fun AILearningCard(viewModel: HomeViewModel) {
                                     text = "💡 Tipp",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF92400E)
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "10-20 javítás után az AI nagyon pontossá válik. Használj következetes elnevezéseket!",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color(0xFF92400E)
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                             }
                         }
@@ -248,7 +248,7 @@ private fun WeightBar(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF1E293B)
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = "${(animatedWeight * 100).toInt()}%",
@@ -262,7 +262,7 @@ private fun WeightBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
-                .background(Color(0xFFE2E8F0), RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
         ) {
             Box(
                 modifier = Modifier
@@ -285,7 +285,7 @@ private fun StatChip(
 ) {
     Surface(
         modifier = modifier,
-        color = Color(0xFFF8FAFC),
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(8.dp)
     ) {
         Column(
@@ -296,12 +296,12 @@ private fun StatChip(
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF6366F1)
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF64748B)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -321,13 +321,13 @@ private fun LearningStep(number: String, text: String) {
         Box(
             modifier = Modifier
                 .size(24.dp)
-                .background(Color(0xFF6366F1), CircleShape),
+                .background(MaterialTheme.colorScheme.primary, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = number,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -335,7 +335,7 @@ private fun LearningStep(number: String, text: String) {
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF475569),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f)
         )
     }

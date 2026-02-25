@@ -24,11 +24,11 @@ fun ForecastCard(prediction: PredictionResult) {
         modifier = Modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 12.dp,
+                elevation = 8.dp,
                 shape = RoundedCornerShape(24.dp),
-                spotColor = Color(0xFF6366F1).copy(alpha = 0.25f)
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
             ),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(24.dp)
     ) {
         Box(
@@ -36,7 +36,10 @@ fun ForecastCard(prediction: PredictionResult) {
                 .fillMaxWidth()
                 .background(
                     brush = Brush.linearGradient(
-                        colors = listOf(Color(0xFF6366F1), Color(0xFF4F46E5))
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            Color.Transparent
+                        )
                     )
                 )
                 .padding(24.dp)
@@ -49,13 +52,13 @@ fun ForecastCard(prediction: PredictionResult) {
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.9f),
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
                         text = "Hónap végi előrejelzés",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -66,20 +69,20 @@ fun ForecastCard(prediction: PredictionResult) {
                     text = "${formatAmount(prediction.forecastedTotal)} Ft",
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.primary
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Surface(
-                    color = Color.White.copy(alpha = 0.2f),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         text = "Várható napi átlag: ${formatAmount(prediction.dailyRate)} Ft",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -88,7 +91,7 @@ fun ForecastCard(prediction: PredictionResult) {
             Icon(
                 imageVector = Icons.Default.Timeline,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.1f),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
                 modifier = Modifier
                     .size(120.dp)
                     .align(Alignment.CenterEnd)

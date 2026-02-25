@@ -4,6 +4,7 @@ import android.app.Application
 import com.example.personalfinanceapp.presentation.home.HomeScreen
 import com.example.personalfinanceapp.presentation.recurring.RecurringScreen
 import com.example.personalfinanceapp.presentation.navigation.Screen
+import com.example.personalfinanceapp.data.SettingsManager
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -42,8 +43,10 @@ import com.example.personalfinanceapp.data.repository.RecurringRepository
 import com.example.personalfinanceapp.presentation.budget.BudgetSetupScreen
 import com.example.personalfinanceapp.presentation.home.HomeViewModel
 import com.example.personalfinanceapp.presentation.learning.LearningScreen
+import com.example.personalfinanceapp.presentation.settings.SettingsScreen
 import com.example.personalfinanceapp.presentation.stats.StatsScreen
 import com.example.personalfinanceapp.presentation.stats.StatsViewModel
+import com.example.personalfinanceapp.ui.theme.PersonalFinanceAppTheme
 import com.example.personalfinanceapp.workers.RecurringWorker
 import kotlinx.coroutines.launch
 
@@ -59,15 +62,18 @@ class MainActivity : ComponentActivity() {
             workRequest
         )
 
+        val settingsManager = SettingsManager(this)
+
         setContent {
-            MaterialTheme(
-                colorScheme = lightColorScheme(
-                    primary = Color(0xFF6200EE),
-                    secondary = Color(0xFF03DAC5),
-                    background = Color(0xFFF5F5F5)
-                )
-            ) {
-                MainApp()
+            val darkMode by settingsManager.darkModeFlow.collectAsState(initial = false)
+
+            PersonalFinanceAppTheme(darkTheme = darkMode) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    MainApp(settingsManager = settingsManager)
+                }
             }
         }
 
@@ -77,12 +83,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 @Composable
-fun MainApp() {
+fun MainApp(settingsManager: SettingsManager) {
     val context = LocalContext.current
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
+
+    val activity = context as? ComponentActivity
 
     val db = AppDatabase.getDatabase(context)
     val budgetRepo = BudgetRepository(db.budgetDao())
@@ -97,13 +106,14 @@ fun MainApp() {
     )
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             NavigationBar(
                 modifier = Modifier
                     .padding(horizontal = 24.dp, vertical = 16.dp)
                     .height(96.dp)
                     .clip(RoundedCornerShape(20.dp)),
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
             ) {
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
@@ -142,6 +152,11 @@ fun MainApp() {
                     viewModel = sharedHomeViewModel,
                     onSeeAllClick = { navController.navigate(Screen.History.route) },
                     onBudgetSetupClick = { navController.navigate(Screen.BudgetSetup.route) },
+                    onDarkModeToggle = {
+                        activity?.lifecycleScope?.launch {
+                            settingsManager.toggleDarkMode()
+                        }
+                    }
                 )
             }
 
@@ -190,6 +205,13 @@ fun MainApp() {
                     }
                 )
                 StatsScreen(viewModel = statsViewModel)
+            }
+
+            composable("settings") {
+                SettingsScreen(
+                    settingsManager = settingsManager,
+                    onBack = { navController.navigateUp() }
+                )
             }
         }
     }

@@ -32,12 +32,12 @@ fun LearningScreen(viewModel: HomeViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // --- Header (Matches ModernHeader pattern) ---
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = 2.dp
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
@@ -45,12 +45,12 @@ fun LearningScreen(viewModel: HomeViewModel) {
                     text = "Tudástár",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Fejleszd a pénzügyi tudatosságod",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF64748B)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -71,6 +71,7 @@ fun LearningScreen(viewModel: HomeViewModel) {
                     text = "Tananyagok",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
@@ -89,13 +90,18 @@ fun FeaturedLessonCard() {
         modifier = Modifier
             .fillMaxWidth()
             .height(180.dp)
-            .shadow(12.dp, RoundedCornerShape(24.dp)),
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(24.dp),
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+            ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(24.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Brush.horizontalGradient(listOf(Color(0xFF6366F1), Color(0xFF8B5CF6))))
+                .background(Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, Color(0xFF8B5CF6))))
                 .padding(24.dp)
         ) {
             Column(modifier = Modifier.align(Alignment.CenterStart)) {
@@ -139,7 +145,7 @@ fun LessonCard(lesson: FinanceLesson) {
         modifier = Modifier
             .fillMaxWidth()
             .shadow(4.dp, RoundedCornerShape(20.dp)),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(20.dp)
     ) {
         Row(
@@ -159,7 +165,7 @@ fun LessonCard(lesson: FinanceLesson) {
                 Text(
                     text = lesson.title,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "${lesson.duration} • ${
@@ -167,13 +173,13 @@ fun LessonCard(lesson: FinanceLesson) {
                             .replaceFirstChar { if (it.isLowerCase()) it.titlecase(getDefault()) else it.toString() }
                     }",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF64748B)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Icon(
                 Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = Color(0xFFCBD5E1)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
         }
     }
