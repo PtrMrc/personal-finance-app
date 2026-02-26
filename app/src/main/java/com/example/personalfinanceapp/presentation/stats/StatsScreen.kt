@@ -24,7 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.personalfinanceapp.presentation.stats.components.ForecastCard
+import com.example.personalfinanceapp.utils.CategoryMapper
 import com.example.personalfinanceapp.utils.formatAmount
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
@@ -33,10 +33,13 @@ import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesian
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
+import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
+import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
+import com.patrykandpatrick.vico.core.cartesian.layer.ColumnCartesianLayer
+import com.patrykandpatrick.vico.core.common.shape.CorneredShape
 import kotlinx.coroutines.delay
-import com.example.personalfinanceapp.utils.CategoryMapper
 
 enum class TimePeriod(val displayName: String) {
     WEEK("Hét"),
@@ -51,8 +54,6 @@ fun StatsScreen(viewModel: StatsViewModel) {
     val categoryBreakdown by viewModel.categoryBreakdown.collectAsState()
     val averageDaily by viewModel.averageDailySpending.collectAsState()
     val topCategory by viewModel.topCategory.collectAsState()
-    val forecast by viewModel.spendingForecast.collectAsState()
-    val transactionCount by viewModel.transactionCount.collectAsState()
 
     var selectedPeriod by remember { mutableStateOf(TimePeriod.WEEK) }
     var showDetails by remember { mutableStateOf(false) }
@@ -77,10 +78,10 @@ fun StatsScreen(viewModel: StatsViewModel) {
         ) {
             Column {
                 Text(
-                    text = "Pénzügyi Áttekintés",
-                    style = MaterialTheme.typography.headlineLarge,
+                    text = "Elemzés",
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "Részletes statisztikák és trendek",
@@ -130,14 +131,6 @@ fun StatsScreen(viewModel: StatsViewModel) {
             }
         }
 
-        AnimatedVisibility(
-            visible = visible && forecast != null && transactionCount > 3,
-            enter = fadeIn(tween(600, 250)) + slideInVertically(tween(600, 250))
-        ) {
-            forecast?.let {
-                ForecastCard(prediction = it)
-            }
-        }
 
         AnimatedVisibility(
             visible = visible,
@@ -366,12 +359,31 @@ fun ChartCard(viewModel: StatsViewModel, period: TimePeriod) {
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+            val columnLayer = rememberColumnCartesianLayer(
+                columnProvider = ColumnCartesianLayer.ColumnProvider.series(
+                    rememberLineComponent(
+                        thickness = 18.dp,
+                        shape = CorneredShape.rounded(topLeftPercent = 30, topRightPercent = 30)
+                    )
+                )
+            )
+
+            val labelComponent = rememberTextComponent(
+                color = onSurfaceVariantColor,
+            )
 
             val cartesianChart = rememberCartesianChart(
-                rememberColumnCartesianLayer(),
-                startAxis = VerticalAxis.rememberStart(),
-                bottomAxis = HorizontalAxis.rememberBottom()
+                columnLayer,
+                startAxis = VerticalAxis.rememberStart(
+                    label = labelComponent
+                ),
+                bottomAxis = HorizontalAxis.rememberBottom(
+                    label = labelComponent
+                )
             )
 
             CartesianChartHost(
@@ -379,7 +391,7 @@ fun ChartCard(viewModel: StatsViewModel, period: TimePeriod) {
                 modelProducer = viewModel.modelProducer,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(240.dp),
+                    .height(220.dp),
                 scrollState = rememberVicoScrollState(),
                 zoomState = rememberVicoZoomState()
             )
