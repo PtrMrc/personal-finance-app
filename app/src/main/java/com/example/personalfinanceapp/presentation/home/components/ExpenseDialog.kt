@@ -64,6 +64,7 @@ fun ExpenseDialog(
     initialAmount: String,
     initialCategory: String,
     initialDescription: String,
+    isEditing: Boolean = false,
     viewModel: HomeViewModel,
     onDismiss: () -> Unit,
     onConfirm: (String, Double, String, String) -> Unit
@@ -100,7 +101,7 @@ fun ExpenseDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Új Tétel") },
+        title = { Text(if (isEditing) "Tétel szerkesztése" else "Új Tétel") },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),

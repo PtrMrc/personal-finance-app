@@ -12,32 +12,6 @@ fun extractAmount(text: String): Double {
     return match?.value?.toDouble() ?: 0.0
 }
 
-// Logic: Translates AI (English) -> UI (Hungarian)
-fun mapToHungarian(englishCategory: String): String {
-    return when(englishCategory) {
-        "Food" -> "Élelmiszer"
-        "Transport" -> "Utazás"
-        "Entertainment" -> "Szórakozás"
-        "Bills" -> "Számlák"
-        "Health" -> "Egészség"
-        "Income" -> "Bevétel"
-        else -> "Egyéb"
-    }
-}
-
-// Returns color based on category names
-fun getColorForCategory(category: String): Color {
-    return when(category) {
-        "Food", "Élelmiszer" -> Color(0xFFFF9800)      // Orange
-        "Transport", "Utazás" -> Color(0xFF2196F3)     // Blue
-        "Entertainment", "Szórakozás" -> Color(0xFF9C27B0) // Purple
-        "Bills", "Számlák" -> Color(0xFFF44336)        // Red
-        "Health", "Egészség" -> Color(0xFF4CAF50)      // Green
-        "Income", "Bevétel" -> Color(0xFF009688)       // Teal
-        else -> Color.Gray
-    }
-}
-
 // Helper: Formats 12345.0 -> "12 345"
 fun formatAmount(amount: Double): String {
     val formatter = NumberFormat.getNumberInstance(Locale.forLanguageTag("hu-HU"))
@@ -51,5 +25,20 @@ fun mapFrequency(frequency: Frequency): String {
         Frequency.MONTHLY -> "Havonta"
         Frequency.QUARTERLY -> "Negyedévente"
         Frequency.YEARLY -> "Évente"
+    }
+}
+
+/**
+ * Formats a Unix timestamp into a human-readable relative date string.
+ * Returns "Ma", "Tegnap", "$n napja", or a short month-day string for older dates.
+ */
+fun formatDate(timestamp: Long): String {
+    val days = (System.currentTimeMillis() - timestamp) / (1000 * 60 * 60 * 24)
+    return when {
+        days == 0L -> "Ma"
+        days == 1L -> "Tegnap"
+        days < 7   -> "$days napja"
+        else       -> java.text.SimpleDateFormat("MMM dd", java.util.Locale("hu"))
+            .format(java.util.Date(timestamp))
     }
 }

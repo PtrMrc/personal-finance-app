@@ -29,7 +29,9 @@ import com.example.personalfinanceapp.presentation.home.components.ExpenseDialog
 import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.presentation.home.components.BudgetProgressSection
 import com.example.personalfinanceapp.utils.extractAmount
-import com.example.personalfinanceapp.utils.mapToHungarian
+import com.example.personalfinanceapp.utils.CategoryMapper
+import com.example.personalfinanceapp.utils.formatAmount
+import com.example.personalfinanceapp.utils.formatDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -326,6 +328,7 @@ fun HomeScreen(
             initialAmount = if (activeExpense!!.amount > 0) activeExpense!!.amount.toInt().toString() else "",
             initialCategory = activeExpense!!.category,
             initialDescription = activeExpense!!.description ?: "",
+            isEditing = activeExpense!!.id != 0,
             viewModel = viewModel,
             onDismiss = { showDialog = false },
             onConfirm = { title, amount, category, desc ->
@@ -378,23 +381,6 @@ fun ModernHeader(onDarkModeToggle: () -> Unit = {}) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = { },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = CircleShape
-                        )
-                ) {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
                 IconButton(
                     onClick = onDarkModeToggle,
                     modifier = Modifier
@@ -476,7 +462,7 @@ fun EnhancedBalanceCard(
 
                         // The balance is now the hero, using the Primary color so it pops!
                         Text(
-                            text = "${total.toInt()} Ft",
+                            text = "${formatAmount(total)} Ft",
                             style = MaterialTheme.typography.displaySmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -553,7 +539,7 @@ fun CategoryPill(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "${amount.toInt()} Ft",
+                text = "${formatAmount(amount)} Ft",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
@@ -582,7 +568,7 @@ fun QuickStatsRow(
 
         QuickStatCard(
             title = "Átlag",
-            value = "${averageSpending.toInt()} Ft",
+            value = "${formatAmount(averageSpending)} Ft",
             icon = Icons.AutoMirrored.Filled.ShowChart,
             color = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.weight(1f)
@@ -678,15 +664,15 @@ fun EnhancedExpenseCard(expense: Expense) {
                     modifier = Modifier
                         .size(48.dp)
                         .background(
-                            color = getCategoryColor(expense.category).copy(alpha = 0.1f),
+                            color = CategoryMapper.getColor(expense.category).copy(alpha = 0.1f),
                             shape = RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = getCategoryIcon(expense.category),
+                        imageVector = CategoryMapper.getIcon(expense.category),
                         contentDescription = null,
-                        tint = getCategoryColor(expense.category),
+                        tint = CategoryMapper.getColor(expense.category),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -725,7 +711,7 @@ fun EnhancedExpenseCard(expense: Expense) {
             }
 
             Text(
-                text = "${if (expense.isIncome) "+" else "-"}${expense.amount.toInt()} Ft",
+                text = "${if (expense.isIncome) "+" else "-"}${formatAmount(expense.amount)} Ft",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = if (expense.isIncome) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
@@ -934,48 +920,4 @@ fun ModernDeleteDialog(
             }
         }
     )
-}
-
-fun getCategoryColor(category: String): Color {
-    return when (category.lowercase()) {
-        "étel", "food" -> Color(0xFFEF4444)
-        "közlekedés", "transport" -> Color(0xFF3B82F6)
-        "szórakozás", "entertainment" -> Color(0xFF8B5CF6)
-        "lakhatás", "housing" -> Color(0xFFF59E0B)
-        "egészség", "health" -> Color(0xFF10B981)
-        "oktatás", "education" -> Color(0xFF6366F1)
-        "ruházat", "clothing" -> Color(0xFFEC4899)
-        "bevétel", "income" -> Color(0xFF10B981)
-        else -> Color(0xFF64748B)
-    }
-}
-
-fun getCategoryIcon(category: String): androidx.compose.ui.graphics.vector.ImageVector {
-    return when (category.lowercase()) {
-        "étel", "food" -> Icons.Default.Restaurant
-        "közlekedés", "transport" -> Icons.Default.DirectionsCar
-        "szórakozás", "entertainment" -> Icons.Default.MovieCreation
-        "lakhatás", "housing" -> Icons.Default.Home
-        "egészség", "health" -> Icons.Default.Favorite
-        "oktatás", "education" -> Icons.Default.School
-        "ruházat", "clothing" -> Icons.Default.Checkroom
-        "bevétel", "income" -> Icons.AutoMirrored.Filled.TrendingUp
-        else -> Icons.Default.Category
-    }
-}
-
-fun formatDate(timestamp: Long): String {
-    val now = System.currentTimeMillis()
-    val diff = now - timestamp
-    val days = diff / (1000 * 60 * 60 * 24)
-
-    return when {
-        days == 0L -> "Ma"
-        days == 1L -> "Tegnap"
-        days < 7 -> "$days napja"
-        else -> {
-            val date = java.text.SimpleDateFormat("MMM dd", java.util.Locale("hu")).format(java.util.Date(timestamp))
-            date
-        }
-    }
 }

@@ -16,62 +16,60 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// Light theme colors - matching your app's current design
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF6366F1),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFE0E7FF),
-    onPrimaryContainer = Color(0xFF1E1B4B),
+    primary                = BrandIndigo,
+    onPrimary              = Color.White,
+    primaryContainer       = Color(0xFFE0E7FF),
+    onPrimaryContainer     = Color(0xFF1E1B4B),
 
-    secondary = Color(0xFF10B981),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFD1FAE5),
-    onSecondaryContainer = Color(0xFF064E3B),
+    secondary              = BrandEmerald,
+    onSecondary            = Color.White,
+    secondaryContainer     = Color(0xFFD1FAE5),
+    onSecondaryContainer   = Color(0xFF064E3B),
 
-    tertiary = Color(0xFFF59E0B),
-    onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFFEF3C7),
-    onTertiaryContainer = Color(0xFF78350F),
+    tertiary               = BrandAmber,
+    onTertiary             = Color.White,
+    tertiaryContainer      = Color(0xFFFEF3C7),
+    onTertiaryContainer    = Color(0xFF78350F),
 
-    background = Color(0xFFF8F9FA),
-    onBackground = Color(0xFF1E293B),
+    background             = BackgroundLight,
+    onBackground           = ContentPrimary,
 
-    surface = Color.White,
-    onSurface = Color(0xFF1E293B),
-    surfaceVariant = Color(0xFFF1F5F9),
-    onSurfaceVariant = Color(0xFF64748B),
+    surface                = SurfaceLight,
+    onSurface              = ContentPrimary,
+    surfaceVariant         = SurfaceVarLight,
+    onSurfaceVariant       = ContentSecondary,
 
-    error = Color(0xFFEF4444),
-    onError = Color.White
+    error                  = BrandRed,
+    onError                = Color.White
 )
 
-// Dark theme colors
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF818CF8),
-    onPrimary = Color(0xFF1E1B4B),
-    primaryContainer = Color(0xFF3730A3),
-    onPrimaryContainer = Color(0xFFE0E7FF),
+    primary                = BrandIndigoLight,
+    onPrimary              = Color(0xFF1E1B4B),
+    primaryContainer       = BrandIndigoDark,
+    onPrimaryContainer     = Color(0xFFE0E7FF),
 
-    secondary = Color(0xFF34D399),
-    onSecondary = Color(0xFF064E3B),
-    secondaryContainer = Color(0xFF065F46),
-    onSecondaryContainer = Color(0xFFD1FAE5),
+    secondary              = BrandEmeraldLight,
+    onSecondary            = Color(0xFF064E3B),
+    secondaryContainer     = Color(0xFF065F46),
+    onSecondaryContainer   = Color(0xFFD1FAE5),
 
-    tertiary = Color(0xFFFBBF24),
-    onTertiary = Color(0xFF78350F),
-    tertiaryContainer = Color(0xFF92400E),
-    onTertiaryContainer = Color(0xFFFEF3C7),
+    tertiary               = BrandAmberLight,
+    onTertiary             = Color(0xFF78350F),
+    tertiaryContainer      = Color(0xFF92400E),
+    onTertiaryContainer    = Color(0xFFFEF3C7),
 
-    background = Color(0xFF0F172A),
-    onBackground = Color(0xFFF1F5F9),
+    background             = BackgroundDark,
+    onBackground           = ContentOnDark,
 
-    surface = Color(0xFF1E293B),
-    onSurface = Color(0xFFF1F5F9),
-    surfaceVariant = Color(0xFF334155),
-    onSurfaceVariant = Color(0xFF94A3B8),
+    surface                = SurfaceDark,
+    onSurface              = ContentOnDark,
+    surfaceVariant         = SurfaceVarDark,
+    onSurfaceVariant       = ContentOnDarkSub,
 
-    error = Color(0xFFFCA5A5),
-    onError = Color(0xFF7F1D1D)
+    error                  = BrandRedLight,
+    onError                = Color(0xFF7F1D1D)
 )
 
 @Composable
@@ -86,7 +84,7 @@ fun PersonalFinanceAppTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
         darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        else      -> LightColorScheme
     }
 
     val view = LocalView.current
@@ -100,7 +98,7 @@ fun PersonalFinanceAppTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+        typography  = Typography,
+        content     = content
     )
 }

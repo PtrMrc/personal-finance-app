@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.personalfinanceapp.presentation.stats.components.ForecastCard
+import com.example.personalfinanceapp.utils.formatAmount
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
@@ -35,6 +36,7 @@ import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import kotlinx.coroutines.delay
+import com.example.personalfinanceapp.utils.CategoryMapper
 
 enum class TimePeriod(val displayName: String) {
     WEEK("Hét"),
@@ -111,7 +113,7 @@ fun StatsScreen(viewModel: StatsViewModel) {
                 SummaryCard(
                     modifier = Modifier.weight(1f),
                     title = "Összes költés",
-                    value = "${total.toInt()} Ft",
+                    value = "${formatAmount(total)} Ft",
                     icon = Icons.Default.AccountBalance,
                     color = MaterialTheme.colorScheme.primary,
                     trend = null
@@ -120,7 +122,7 @@ fun StatsScreen(viewModel: StatsViewModel) {
                 SummaryCard(
                     modifier = Modifier.weight(1f),
                     title = "Napi átlag",
-                    value = "${averageDaily.toInt()} Ft",
+                    value = "${formatAmount(averageDaily)} Ft",
                     icon = Icons.Default.CalendarToday,
                     color = MaterialTheme.colorScheme.tertiary,
                     trend = null
@@ -167,7 +169,7 @@ fun StatsScreen(viewModel: StatsViewModel) {
             if (currentTopCategory != null && currentTopCategory.first != null) {
                 InsightCard(
                     title = "Legnagyobb kiadás",
-                    message = "A legtöbbet ${currentTopCategory.first} kategóriában költöttél: ${currentTopCategory.second.toInt()} Ft",
+                    message = "A legtöbbet ${currentTopCategory.first} kategóriában költöttél: ${formatAmount(currentTopCategory.second)} Ft",
                     icon = Icons.AutoMirrored.Filled.TrendingUp,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -455,7 +457,7 @@ fun CategoryBreakdownCard(
                             name = category,
                             amount = amount,
                             percentage = if (total > 0) (amount / total * 100) else 0.0,
-                            color = getCategoryColor(category)
+                            color = CategoryMapper.getColor(category)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                     }
@@ -492,7 +494,7 @@ fun CategoryItem(
                 )
             }
             Text(
-                text = "${amount.toInt()} Ft",
+                text = "${formatAmount(amount)} Ft",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -760,18 +762,5 @@ fun FeatureChip(text: String, icon: ImageVector) {
                 fontWeight = FontWeight.Medium
             )
         }
-    }
-}
-
-fun getCategoryColor(category: String): Color {
-    return when (category.lowercase()) {
-        "étel", "food" -> Color(0xFFEF4444)
-        "közlekedés", "transport" -> Color(0xFF3B82F6)
-        "szórakozás", "entertainment" -> Color(0xFF8B5CF6)
-        "lakhatás", "housing" -> Color(0xFFF59E0B)
-        "egészség", "health" -> Color(0xFF10B981)
-        "oktatás", "education" -> Color(0xFF6366F1)
-        "ruházat", "clothing" -> Color(0xFFEC4899)
-        else -> Color(0xFF64748B)
     }
 }

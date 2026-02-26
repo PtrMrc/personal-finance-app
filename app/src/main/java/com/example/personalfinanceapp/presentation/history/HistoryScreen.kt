@@ -12,13 +12,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import com.example.personalfinanceapp.utils.formatAmount
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.personalfinanceapp.data.Expense
 import kotlinx.coroutines.delay
+import com.example.personalfinanceapp.utils.CategoryMapper
+import com.example.personalfinanceapp.utils.formatDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -365,7 +367,7 @@ fun HistoryStatsRow(
     ) {
         HistoryStatCard(
             title = "Összesen",
-            value = "${totalAmount.toInt()} Ft",
+            value = "${formatAmount(totalAmount)} Ft",
             icon = Icons.Default.AccountBalance,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f)
@@ -381,7 +383,7 @@ fun HistoryStatsRow(
 
         HistoryStatCard(
             title = "Átlag",
-            value = "${averageAmount.toInt()} Ft",
+            value = "${formatAmount(averageAmount)} Ft",
             icon = Icons.AutoMirrored.Filled.ShowChart,
             color = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.weight(1f)
@@ -477,15 +479,15 @@ fun HistoryExpenseCard(expense: Expense) {
                     modifier = Modifier
                         .size(48.dp)
                         .background(
-                            color = getCategoryColor(expense.category).copy(alpha = 0.1f),
+                            color = CategoryMapper.getColor(expense.category).copy(alpha = 0.1f),
                             shape = RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = getCategoryIcon(expense.category),
+                        imageVector = CategoryMapper.getIcon(expense.category),
                         contentDescription = null,
-                        tint = getCategoryColor(expense.category),
+                        tint = CategoryMapper.getColor(expense.category),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -524,7 +526,7 @@ fun HistoryExpenseCard(expense: Expense) {
             }
 
             Text(
-                text = "${if (expense.isIncome) "+" else "-"}${expense.amount.toInt()} Ft",
+                text = "${if (expense.isIncome) "+" else "-"}${formatAmount(expense.amount)} Ft",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = if (expense.isIncome) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
@@ -580,51 +582,6 @@ fun HistoryEmptyState(currentFilter: DateFilter) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-    }
-}
-
-// Helper functions
-fun getCategoryColor(category: String): Color {
-    return when (category.lowercase()) {
-        "étel", "food" -> Color(0xFFEF4444)
-        "közlekedés", "transport" -> Color(0xFF3B82F6)
-        "szórakozás", "entertainment" -> Color(0xFF8B5CF6)
-        "lakhatás", "housing" -> Color(0xFFF59E0B)
-        "egészség", "health" -> Color(0xFF10B981)
-        "oktatás", "education" -> Color(0xFF6366F1)
-        "ruházat", "clothing" -> Color(0xFFEC4899)
-        "bevétel", "income" -> Color(0xFF10B981)
-        else -> Color(0xFF64748B)
-    }
-}
-
-fun getCategoryIcon(category: String): androidx.compose.ui.graphics.vector.ImageVector {
-    return when (category.lowercase()) {
-        "étel", "food" -> Icons.Default.Restaurant
-        "közlekedés", "transport" -> Icons.Default.DirectionsCar
-        "szórakozás", "entertainment" -> Icons.Default.MovieCreation
-        "lakhatás", "housing" -> Icons.Default.Home
-        "egészség", "health" -> Icons.Default.Favorite
-        "oktatás", "education" -> Icons.Default.School
-        "ruházat", "clothing" -> Icons.Default.Checkroom
-        "bevétel", "income" -> Icons.AutoMirrored.Filled.TrendingUp
-        else -> Icons.Default.Category
-    }
-}
-
-fun formatDate(timestamp: Long): String {
-    val now = System.currentTimeMillis()
-    val diff = now - timestamp
-    val days = diff / (1000 * 60 * 60 * 24)
-
-    return when {
-        days == 0L -> "Ma"
-        days == 1L -> "Tegnap"
-        days < 7 -> "$days napja"
-        else -> {
-            val date = java.text.SimpleDateFormat("MMM dd", java.util.Locale("hu")).format(java.util.Date(timestamp))
-            date
         }
     }
 }

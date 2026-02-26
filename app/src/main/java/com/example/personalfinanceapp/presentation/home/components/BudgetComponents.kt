@@ -18,8 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.personalfinanceapp.presentation.home.BudgetProgress
-import com.example.personalfinanceapp.presentation.home.getCategoryColor
-import com.example.personalfinanceapp.presentation.home.getCategoryIcon
+import com.example.personalfinanceapp.utils.CategoryMapper
 import com.example.personalfinanceapp.utils.formatAmount
 
 @Composable
@@ -128,13 +127,13 @@ fun BudgetProgressBar(progress: BudgetProgress) {
                 Box(
                     modifier = Modifier
                         .size(32.dp)
-                        .background(getCategoryColor(progress.category).copy(alpha = 0.1f), CircleShape),
+                        .background(CategoryMapper.getColor(progress.category).copy(alpha = 0.1f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        getCategoryIcon(progress.category),
+                        CategoryMapper.getIcon(progress.category),
                         contentDescription = null,
-                        tint = getCategoryColor(progress.category),
+                        tint = CategoryMapper.getColor(progress.category),
                         modifier = Modifier.size(16.dp)
                     )
                 }
