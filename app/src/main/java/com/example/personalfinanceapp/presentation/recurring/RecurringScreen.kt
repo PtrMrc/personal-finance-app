@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.personalfinanceapp.presentation.components.ScreenHeader
 import com.example.personalfinanceapp.presentation.recurring.components.AddRecurringDialog
 import com.example.personalfinanceapp.data.RecurringItem
 import com.example.personalfinanceapp.presentation.home.EmptyStateCard
@@ -39,6 +40,7 @@ fun RecurringScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0),  // ScreenHeader handles status bar inset itself
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddDialog = true },
@@ -61,28 +63,15 @@ fun RecurringScreen(
                 visible = visible,
                 enter = fadeIn()
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 20.dp)
-                ) {
-                    Text(
-                        text = "Állandó tételek",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "Automatikus havi tranzakciók",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                ScreenHeader(
+                    title = "Állandó tételek",
+                    subtitle = "Automatikus havi tranzakciók"
+                )
             }
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 if (items.isEmpty()) {

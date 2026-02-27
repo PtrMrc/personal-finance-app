@@ -23,8 +23,7 @@ import com.example.personalfinanceapp.utils.formatAmount
 
 @Composable
 fun BudgetProgressSection(
-    budgets: List<BudgetProgress>,
-    onSetupClick: () -> Unit
+    budgets: List<BudgetProgress>
 ) {
     if (budgets.isEmpty()) return
 
@@ -47,28 +46,12 @@ fun BudgetProgressSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
-            // Edit Button
-            IconButton(
-                onClick = onSetupClick,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
-            ) {
-                Icon(
-                    Icons.Default.Settings,
-                    contentDescription = "Beállítások",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         if (budgets.isEmpty()) {
             Card(
-                modifier = Modifier.fillMaxWidth().clickable { onSetupClick() },
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(16.dp)
             ) {

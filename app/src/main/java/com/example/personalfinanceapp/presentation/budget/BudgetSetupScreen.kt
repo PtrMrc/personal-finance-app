@@ -42,167 +42,171 @@ fun BudgetSetupScreen(
     val categories = listOf("Összesen", "Élelmiszer", "Utazás", "Szórakozás", "Számlák", "Egészség", "Egyéb")
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 2.dp
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Vissza", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "Költségvetések",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Kiadási limitek beállítása",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
         ) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(20.dp)),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text(
-                            text = "Új limit hozzáadása",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
-                        Box {
-                            OutlinedTextField(
-                                value = selectedCategory,
-                                onValueChange = {},
-                                label = { Text("Kategória") },
-                                readOnly = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                trailingIcon = {
-                                    Icon(Icons.Default.ArrowDropDown, null, Modifier.clickable { expanded = true })
-                                }
-                            )
-                            DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false },
-                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-                            ) {
-                                categories.forEach { cat ->
-                                    DropdownMenuItem(
-                                        text = { Text(cat) },
-                                        onClick = { selectedCategory = cat; expanded = false }
-                                    )
-                                }
-                            }
-                        }
-
-                        OutlinedTextField(
-                            value = limitInput,
-                            onValueChange = { limitInput = it; limitError = null },
-                            label = { Text("Havi keret (Ft)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            isError = limitError != null,
-                            supportingText = limitError?.let { { Text(it) } }
-                        )
-
-                        Button(
-                            onClick = {
-                                val validation = Validation.validateAmount(limitInput)
-                                if (validation is ValidationResult.Error) {
-                                    limitError = validation.message
-                                } else {
-                                    viewModel.setBudget(selectedCategory, limitInput.toDouble())
-                                    limitInput = ""
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text("Mentés", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
-                        }
-                    }
-                }
-            }
-
-            item {
-                Text(
-                    text = "Aktív limitek",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
-            if (budgets.isEmpty()) {
-                item {
-                    Text(
-                        text = "Még nincsenek beállítva költségvetési limitek.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium
+            // --- Unified Custom Header (Matches Settings & Main Tabs) ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 4.dp, top = 0.dp, end = 16.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Vissza",
+                        tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
-            } else {
-                items(budgets, key = { it.category }) { budget ->
+                Spacer(modifier = Modifier.width(4.dp))
+                Column {
+                    Text(
+                        text = "Költségvetések",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "Kiadási limitek beállítása",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // --- Scrollable Content ---
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(20.dp)),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(2.dp)
+                        shape = RoundedCornerShape(20.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = budget.category,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Text(
+                                text = "Új limit hozzáadása",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            Box {
+                                OutlinedTextField(
+                                    value = selectedCategory,
+                                    onValueChange = {},
+                                    label = { Text("Kategória") },
+                                    readOnly = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    trailingIcon = {
+                                        Icon(Icons.Default.ArrowDropDown, null, Modifier.clickable { expanded = true })
+                                    }
                                 )
-                                Text(
-                                    text = "Keret: ${formatAmount(budget.limit)} Ft",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false },
+                                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                ) {
+                                    categories.forEach { cat ->
+                                        DropdownMenuItem(
+                                            text = { Text(cat) },
+                                            onClick = { selectedCategory = cat; expanded = false }
+                                        )
+                                    }
+                                }
                             }
 
-                            IconButton(
-                                onClick = { viewModel.deleteBudget(budget.category) },
-                                modifier = Modifier.background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f), CircleShape)
+                            OutlinedTextField(
+                                value = limitInput,
+                                onValueChange = { limitInput = it; limitError = null },
+                                label = { Text("Havi keret (Ft)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                isError = limitError != null,
+                                supportingText = limitError?.let { { Text(it) } }
+                            )
+
+                            Button(
+                                onClick = {
+                                    val validation = Validation.validateAmount(limitInput)
+                                    if (validation is ValidationResult.Error) {
+                                        limitError = validation.message
+                                    } else {
+                                        viewModel.setBudget(selectedCategory, limitInput.toDouble())
+                                        limitInput = ""
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             ) {
-                                Icon(Icons.Default.Delete, contentDescription = "Törlés", tint = MaterialTheme.colorScheme.error)
+                                Text("Mentés", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Text(
+                        text = "Aktív limitek",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                if (budgets.isEmpty()) {
+                    item {
+                        Text(
+                            text = "Még nincsenek beállítva költségvetési limitek.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                } else {
+                    items(budgets, key = { it.category }) { budget ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = budget.category,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Keret: ${formatAmount(budget.limit)} Ft",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { viewModel.deleteBudget(budget.category) },
+                                    modifier = Modifier.background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f), CircleShape)
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Törlés", tint = MaterialTheme.colorScheme.error)
+                                }
                             }
                         }
                     }

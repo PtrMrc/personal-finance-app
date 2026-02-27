@@ -252,9 +252,7 @@ fun MainApp(settingsManager: SettingsManager) {
                     viewModel = sharedHomeViewModel,
                     onSeeAllClick = { navController.navigate(Screen.History.route) },
                     onBudgetSetupClick = { navController.navigate(Screen.BudgetSetup.route) },
-                    onDarkModeToggle = {
-                        activity?.lifecycleScope?.launch { settingsManager.toggleDarkMode() }
-                    }
+                    onSettingsClick = { navController.navigate("settings") }
                 )
             }
             composable(Screen.Stats.route) {

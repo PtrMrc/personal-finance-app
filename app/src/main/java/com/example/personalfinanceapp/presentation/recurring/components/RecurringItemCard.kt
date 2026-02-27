@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.personalfinanceapp.data.RecurringItem
@@ -88,7 +89,7 @@ fun ModernRecurringItemCard(item: RecurringItem, onDelete: () -> Unit) {
                     text = "${if (item.isIncome) "+" else "-"}${formatAmount(item.amount)} Ft",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (item.isIncome) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+                    color = if (item.isIncome) Color(0xFF10B981) else Color(0xFFEF4444)
                 )
                 IconButton(
                     onClick = onDelete,

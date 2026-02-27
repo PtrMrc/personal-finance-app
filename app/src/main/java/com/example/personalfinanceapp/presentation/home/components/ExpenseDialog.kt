@@ -25,8 +25,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -35,6 +36,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,10 +48,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.example.personalfinanceapp.ml.EnsemblePrediction
 import com.example.personalfinanceapp.presentation.home.HomeViewModel
 import com.example.personalfinanceapp.utils.Validation
@@ -99,168 +103,201 @@ fun ExpenseDialog(
         }
     }
 
-    AlertDialog(
+    BasicAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isEditing) "Tétel szerkesztése" else "Új Tétel") },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.verticalScroll(rememberScrollState())
+        modifier = Modifier
+            .padding(28.dp)
+            .clip(RoundedCornerShape(28.dp)),
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        content = {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surface
             ) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = {
-                        title = it
-                        titleError = null
-                    },
-                    label = { Text("Megnevezés") },
-                    singleLine = true,
-                    isError = titleError != null,
-                    supportingText = titleError?.let { { Text(it) } },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                AnimatedVisibility(
-                    visible = currentPrediction != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
+                Column(
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    currentPrediction?.let { prediction ->
-                        AIPredictionCard(prediction = prediction)
-                    }
-                }
-
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = {
-                        amount = it
-                        amountError = null
-                    },
-                    label = { Text("Összeg (Ft)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    isError = amountError != null,
-                    supportingText = amountError?.let { { Text(it) } },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                if (showError) {
                     Text(
-                        text = "Kérlek add meg a nevet és az összeget!",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
+                        text = if (isEditing) "Tétel szerkesztése" else "Új Tétel",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                }
 
-                Box {
                     OutlinedTextField(
-                        value = category,
-                        onValueChange = {},
-                        label = { Text("Kategória") },
-                        readOnly = true,
-                        trailingIcon = {
-                            Icon(Icons.Default.ArrowDropDown, "Select", Modifier.clickable { expanded = true })
+                        value = title,
+                        onValueChange = {
+                            title = it
+                            titleError = null
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        label = { Text("Megnevezés") },
+                        singleLine = true,
+                        isError = titleError != null,
+                        supportingText = titleError?.let { { Text(it) } },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
                     )
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
+
+                    AnimatedVisibility(
+                        visible = currentPrediction != null,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
                     ) {
-                        categories.forEach { cat ->
-                            DropdownMenuItem(
-                                text = { Text(cat) },
-                                onClick = {
-                                    if (currentPrediction != null && cat != category) {
+                        currentPrediction?.let { prediction ->
+                            AIPredictionCard(prediction = prediction)
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = amount,
+                        onValueChange = {
+                            amount = it
+                            amountError = null
+                        },
+                        label = { Text("Összeg (Ft)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        isError = amountError != null,
+                        supportingText = amountError?.let { { Text(it) } },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    if (showError) {
+                        Text(
+                            text = "Kérlek add meg a nevet és az összeget!",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Box {
+                        OutlinedTextField(
+                            value = category,
+                            onValueChange = {},
+                            label = { Text("Kategória") },
+                            readOnly = true,
+                            trailingIcon = {
+                                Icon(Icons.Default.ArrowDropDown, "Select", Modifier.clickable { expanded = true })
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            categories.forEach { cat ->
+                                DropdownMenuItem(
+                                    text = { Text(cat) },
+                                    onClick = {
+                                        if (currentPrediction != null && cat != category) {
+                                            viewModel.recordCategoryChoice(
+                                                title = title,
+                                                ensemblePrediction = currentPrediction!!,
+                                                userChoice = cat
+                                            )
+                                            scope.launch {
+                                                showLearning = true
+                                                delay(2500)
+                                                showLearning = false
+                                            }
+                                        }
+                                        category = cat
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = showLearning,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = "Learning",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Köszi, ezt megjegyzem!",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Leírás (Opcionális)") },
+                        maxLines = 3,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        TextButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Mégse", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Button(
+                            onClick = {
+                                val titleValidation = Validation.validateTitle(title)
+                                val amountValidation = Validation.validateAmount(amount)
+
+                                if (titleValidation is ValidationResult.Error) titleError = titleValidation.message
+                                if (amountValidation is ValidationResult.Error) amountError = amountValidation.message
+
+                                if (titleValidation is ValidationResult.Success && amountValidation is ValidationResult.Success) {
+                                    val amt = amount.toDouble()
+
+                                    if (currentPrediction != null) {
                                         viewModel.recordCategoryChoice(
                                             title = title,
                                             ensemblePrediction = currentPrediction!!,
-                                            userChoice = cat
+                                            userChoice = category
                                         )
-                                        scope.launch {
-                                            showLearning = true
-                                            delay(2500)
-                                            showLearning = false
-                                        }
                                     }
-                                    category = cat
-                                    expanded = false
+
+                                    onConfirm(title, amt, category, description)
                                 }
-                            )
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Mentés", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
-
-                AnimatedVisibility(
-                    visible = showLearning,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "Learning",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Köszi, ezt megjegyzem!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Leírás (Opcionális)") },
-                    maxLines = 3,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val titleValidation = Validation.validateTitle(title)
-                    val amountValidation = Validation.validateAmount(amount)
-
-                    if (titleValidation is ValidationResult.Error) titleError = titleValidation.message
-                    if (amountValidation is ValidationResult.Error) amountError = amountValidation.message
-
-                    if (titleValidation is ValidationResult.Success && amountValidation is ValidationResult.Success) {
-                        val amt = amount.toDouble()
-
-                        if (currentPrediction != null) {
-                            viewModel.recordCategoryChoice(
-                                title = title,
-                                ensemblePrediction = currentPrediction!!,
-                                userChoice = category
-                            )
-                        }
-
-                        onConfirm(title, amt, category, description)
-                    }
-                }
-            ) {
-                Text("Mentés")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Mégse")
             }
         }
     )

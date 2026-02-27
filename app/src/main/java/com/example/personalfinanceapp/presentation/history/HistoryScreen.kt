@@ -529,7 +529,7 @@ fun HistoryExpenseCard(expense: Expense) {
                 text = "${if (expense.isIncome) "+" else "-"}${formatAmount(expense.amount)} Ft",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = if (expense.isIncome) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+                color = if (expense.isIncome) MaterialTheme.colorScheme.secondary else Color(0xFFEF4444)
             )
         }
     }

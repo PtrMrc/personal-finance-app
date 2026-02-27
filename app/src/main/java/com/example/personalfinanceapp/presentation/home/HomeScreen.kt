@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.personalfinanceapp.presentation.components.ScreenHeader
 import com.example.personalfinanceapp.presentation.home.components.ExpenseDialog
 import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.presentation.home.components.BudgetProgressSection
@@ -40,7 +41,7 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onSeeAllClick: () -> Unit,
     onBudgetSetupClick: () -> Unit,
-    onDarkModeToggle: () -> Unit = {}
+    onSettingsClick: () -> Unit // Replaced onDarkModeToggle with onSettingsClick
 ) {
     val errorMessage by viewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -109,7 +110,8 @@ fun HomeScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0)  // ScreenHeader handles status bar inset itself
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -121,7 +123,10 @@ fun HomeScreen(
                 visible = visible,
                 enter = fadeIn() + slideInVertically()
             ) {
-                ModernHeader(onDarkModeToggle = onDarkModeToggle)
+                ModernHeader(
+                    onSettingsClick = onSettingsClick,
+                    onBudgetClick = onBudgetSetupClick
+                )
             }
 
             LazyColumn(
@@ -153,10 +158,7 @@ fun HomeScreen(
                             enter = fadeIn(animationSpec = tween(600, delayMillis = 250)) +
                                     slideInVertically(animationSpec = tween(600, delayMillis = 250))
                         ) {
-                            BudgetProgressSection(
-                                budgets,
-                                onSetupClick = onBudgetSetupClick
-                            )
+                            BudgetProgressSection(budgets)
                         }
                     }
                 }
@@ -349,40 +351,31 @@ fun HomeScreen(
     }
 }
 
-/**
- * Minimal top header — no surface/shadow, blends with background.
- * Dark mode toggle moved to Settings; this is just the title row.
- */
 @Composable
-fun ModernHeader(onDarkModeToggle: () -> Unit = {}) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 20.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+fun ModernHeader(
+    onSettingsClick: () -> Unit,
+    onBudgetClick: () -> Unit
+) {
+    ScreenHeader(
+        title = "Áttekintés",
+        subtitle = "Pénzügyi aktivitásod"
     ) {
-        Column {
-            Text(
-                text = "Áttekintés",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = "Pénzügyi aktivitásod",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        // Budget Setup Icon
+        IconButton(onClick = onBudgetClick) {
+            Icon(
+                Icons.Default.AccountBalance,
+                contentDescription = "Költségvetés",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(26.dp)
             )
         }
-
-        // Settings / dark mode — single icon, no pill background
-        IconButton(onClick = onDarkModeToggle) {
+        // Settings Icon
+        IconButton(onClick = onSettingsClick) {
             Icon(
-                Icons.Default.DarkMode,
-                contentDescription = "Sötét mód",
+                Icons.Default.Settings,
+                contentDescription = "Beállítások",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(26.dp)
             )
         }
     }
@@ -393,6 +386,18 @@ fun EnhancedBalanceCard(
     total: Double,
     categoryBreakdown: Map<String, Double>
 ) {
+    var animationTarget by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(total) {
+        animationTarget = total.toFloat()
+    }
+
+    val animatedTotal by animateFloatAsState(
+        targetValue = animationTarget,
+        animationSpec = tween(durationMillis = 1500, easing = EaseOutExpo),
+        label = "rolling_balance"
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -407,12 +412,12 @@ fun EnhancedBalanceCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                // A very subtle, elegant gradient overlay that adapts to light/dark mode
                 .background(
                     brush = Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            Color.Transparent
+                        colorStops = arrayOf(
+                            0.0f to MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                            0.6f to MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            1.0f to Color.Transparent
                         )
                     )
                 )
@@ -446,37 +451,17 @@ fun EnhancedBalanceCard(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // The balance is now the hero, using the Primary color so it pops!
                         Text(
-                            text = "${formatAmount(total)} Ft",
+                            text = "${formatAmount(animatedTotal.toDouble())} Ft",
                             style = MaterialTheme.typography.displaySmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    // A softer icon container
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
+                            color = if (total < 0) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Quick category indicators
                 if (categoryBreakdown.isNotEmpty()) {
                     val topCategories = categoryBreakdown.entries
                         .sortedByDescending { it.value }
@@ -508,7 +493,6 @@ fun CategoryPill(
 ) {
     Surface(
         modifier = modifier,
-        // Adapting the pill to look clean in both modes
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -700,7 +684,7 @@ fun EnhancedExpenseCard(expense: Expense) {
                 text = "${if (expense.isIncome) "+" else "-"}${formatAmount(expense.amount)} Ft",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = if (expense.isIncome) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+                color = if (expense.isIncome) MaterialTheme.colorScheme.secondary else Color(0xFFEF4444)
             )
         }
     }
@@ -757,12 +741,6 @@ fun EmptyStateCard() {
     }
 }
 
-/**
- * Compact input area — sits flush with the background, no heavy surface.
- * The text field uses a filled style (no outline border) with a surfaceVariant
- * background, keeping it light and modern. The send button is the only
- * visually prominent element.
- */
 @Composable
 fun ModernInputArea(
     textInput: String,
