@@ -72,9 +72,9 @@ class AdaptiveEnsembleModel(
 
             // Fallback: return TFLite only
             return@withContext EnsemblePrediction(
-                finalCategory = "Other",
+                finalCategory = "Egyéb",
                 confidence = 0.3,
-                tflitePrediction = ModelPrediction(MODEL_TFLITE, "Other", 0.5, 1.0),
+                tflitePrediction = ModelPrediction(MODEL_TFLITE, "Egyéb", 0.5, 1.0),
                 naiveBayesPrediction = null,
                 weights = ModelWeights(1.0, 0.0),
                 explanation = "Error occurred, using fallback"
@@ -257,7 +257,7 @@ class AdaptiveEnsembleModel(
 
         // Case 4: Neither model has prediction (shouldn't happen, but handle it)
         return EnsemblePrediction(
-            finalCategory = "Other",
+            finalCategory = "Egyéb",
             confidence = 0.3,
             tflitePrediction = null,
             naiveBayesPrediction = null,
