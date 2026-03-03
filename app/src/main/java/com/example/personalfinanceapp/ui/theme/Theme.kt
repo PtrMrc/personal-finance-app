@@ -2,7 +2,6 @@ package com.example.personalfinanceapp.ui.theme
 
 import android.app.Activity
 import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -15,92 +14,107 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.example.personalfinanceapp.data.AppTheme
 
 private val LightColorScheme = lightColorScheme(
-    primary              = BrandIndigo,
+    primary              = BrandBlue,
     onPrimary            = Color.White,
-    primaryContainer     = Color(0xFFE0E7FF),
-    onPrimaryContainer   = Color(0xFF1E1B4B),
-
+    primaryContainer     = Color(0xFFDBEAFE),
+    onPrimaryContainer   = Color(0xFF1E3A8A),
     secondary            = BrandEmerald,
     onSecondary          = Color.White,
     secondaryContainer   = Color(0xFFD1FAE5),
     onSecondaryContainer = Color(0xFF064E3B),
-
     tertiary             = BrandAmber,
     onTertiary           = Color.White,
     tertiaryContainer    = Color(0xFFFEF3C7),
     onTertiaryContainer  = Color(0xFF78350F),
-
     background           = BackgroundLight,
     onBackground         = ContentPrimary,
-
     surface              = SurfaceLight,
     onSurface            = ContentPrimary,
     surfaceVariant       = SurfaceVarLight,
     onSurfaceVariant     = ContentSecondary,
-
-    outline              = Color(0xFFE2E8F0),
+    outline              = Color(0xFFCCE8E2),
     error                = BrandRed,
     onError              = Color.White
 )
 
-// True-black dark scheme — deep OLED look, Revolut-inspired
-private val DarkColorScheme = darkColorScheme(
-    primary              = BrandIndigoVibrant,
-    onPrimary            = Color.White,
-    primaryContainer     = BrandIndigoDim,
-    onPrimaryContainer   = Color(0xFFE0E7FF),
-
+// Simple-style dark scheme: dark teal-slate background, teal primary, gold accent.
+// Inspired by the Simple Pay (OTP) app color language.
+private val SimpleColorScheme = darkColorScheme(
+    primary              = BrandBlue,
+    onPrimary            = Color(0xFF1E3A8A),
+    primaryContainer     = BrandBlueDim,
+    onPrimaryContainer   = Color(0xFFDBEAFE),
     secondary            = BrandEmeraldLight,
     onSecondary          = Color(0xFF064E3B),
     secondaryContainer   = Color(0xFF065F46),
     onSecondaryContainer = Color(0xFFD1FAE5),
-
-    tertiary             = BrandAmberLight,
-    onTertiary           = Color(0xFF78350F),
-    tertiaryContainer    = Color(0xFF92400E),
-    onTertiaryContainer  = Color(0xFFFEF3C7),
-
-    // True black — OLED pixels fully off
-    background           = BackgroundDark,
+    tertiary             = BrandGold,
+    onTertiary           = Color(0xFF3D2800),
+    tertiaryContainer    = BrandGoldDim,
+    onTertiaryContainer  = BrandGold,
+    background           = BackgroundSimple,
     onBackground         = ContentOnDark,
-
-    // Cards are #111, barely lifted off the black background
-    surface              = SurfaceDark,
+    surface              = SurfaceSimple,
     onSurface            = ContentOnDark,
-
-    // Chips, input backgrounds, secondary containers
-    surfaceVariant       = SurfaceVarDark,
+    surfaceVariant       = SurfaceVarSimple,
     onSurfaceVariant     = ContentOnDarkSub,
+    outline              = OutlineSimple,
+    error                = BrandRedLight,
+    onError              = Color(0xFF7F1D1D)
+)
 
-    outline              = OutlineDark,
+// True-black OLED scheme: same teal accent, max battery saving on OLED screens.
+private val OledColorScheme = darkColorScheme(
+    primary              = BrandBlue,
+    onPrimary            = Color(0xFF1E3A8A),
+    primaryContainer     = BrandBlueDim,
+    onPrimaryContainer   = Color(0xFFDBEAFE),
+    secondary            = BrandEmeraldLight,
+    onSecondary          = Color(0xFF064E3B),
+    secondaryContainer   = Color(0xFF065F46),
+    onSecondaryContainer = Color(0xFFD1FAE5),
+    tertiary             = BrandGold,
+    onTertiary           = Color(0xFF3D2800),
+    tertiaryContainer    = BrandGoldDim,
+    onTertiaryContainer  = BrandGold,
+    background           = BackgroundOled,
+    onBackground         = ContentOnDark,
+    surface              = SurfaceOled,
+    onSurface            = ContentOnDark,
+    surfaceVariant       = SurfaceVarOled,
+    onSurfaceVariant     = ContentOnDarkSub,
+    outline              = OutlineOled,
     error                = BrandRedLight,
     onError              = Color(0xFF7F1D1D)
 )
 
 @Composable
 fun PersonalFinanceAppTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    appTheme: AppTheme = AppTheme.SIMPLE,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val isDark = appTheme != AppTheme.LIGHT
+
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColorScheme
-        else      -> LightColorScheme
+        appTheme == AppTheme.OLED   -> OledColorScheme
+        appTheme == AppTheme.SIMPLE -> SimpleColorScheme
+        else                        -> LightColorScheme
     }
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // Status bar blends with our background (black in dark, light grey in light)
             window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
         }
     }
 

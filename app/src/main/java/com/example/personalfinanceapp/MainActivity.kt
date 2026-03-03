@@ -73,9 +73,9 @@ class MainActivity : ComponentActivity() {
         val settingsManager = SettingsManager(this)
 
         setContent {
-            val darkMode by settingsManager.darkModeFlow.collectAsState(initial = false)
+            val appTheme by settingsManager.themeFlow.collectAsState(initial = com.example.personalfinanceapp.data.AppTheme.SIMPLE)
 
-            PersonalFinanceAppTheme(darkTheme = darkMode) {
+            PersonalFinanceAppTheme(appTheme = appTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -163,21 +163,34 @@ private fun MinimalNavBar(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.label,
-                        tint = if (isSelected)
-                            MaterialTheme.colorScheme.primary.copy(alpha = iconAlpha)
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = iconAlpha),
+                    // Subtle pill background behind selected icon
+                    Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(28.dp)
-                            .padding(top = 8.dp)
-                            .graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                            }
-                    )
+                            .size(40.dp)
+                            .background(
+                                color = if (isSelected)
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                else
+                                    Color.Transparent,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                            )
+                    ) {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = item.label,
+                            tint = if (isSelected)
+                                MaterialTheme.colorScheme.primary.copy(alpha = iconAlpha)
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = iconAlpha),
+                            modifier = Modifier
+                                .size(24.dp)
+                                .graphicsLayer {
+                                    scaleX = scale
+                                    scaleY = scale
+                                }
+                        )
+                    }
 
                     // Active indicator dot
                     Box(

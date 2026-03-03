@@ -2,6 +2,7 @@ package com.example.personalfinanceapp.presentation.home
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,8 +21,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,18 +41,22 @@ import com.example.personalfinanceapp.utils.formatDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+// Green palette for the balance card
+private val CardGreenDark  = Color(0xFF071A24)   // deep teal-slate (top-left of gradient)
+private val CardGreenLight = Color(0xFF0E3347)   // mid dark teal (bottom-right of gradient)
+private val CardRippleColor   = Color(0xFF1FA884)  // teal ripple lines
+
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
     onSeeAllClick: () -> Unit,
     onBudgetSetupClick: () -> Unit,
-    onSettingsClick: () -> Unit // Replaced onDarkModeToggle with onSettingsClick
+    onSettingsClick: () -> Unit
 ) {
     val errorMessage by viewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Animation state
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(100)
@@ -69,7 +78,6 @@ fun HomeScreen(
     val expenseList by viewModel.allExpenses.collectAsState(initial = emptyList())
     val total by viewModel.totalSpending.collectAsState(initial = 0.0)
 
-    // Calculate category breakdown from expenses
     val categoryBreakdown = remember(expenseList) {
         expenseList.groupBy { it.category }
             .mapValues { (_, expenses) -> expenses.sumOf { it.amount } }
@@ -111,14 +119,13 @@ fun HomeScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets(0)  // ScreenHeader handles status bar inset itself
+        contentWindowInsets = WindowInsets(0)
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // MODERN HEADER
             AnimatedVisibility(
                 visible = visible,
                 enter = fadeIn() + slideInVertically()
@@ -136,7 +143,6 @@ fun HomeScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // BALANCE CARD
                 item {
                     AnimatedVisibility(
                         visible = visible,
@@ -150,7 +156,6 @@ fun HomeScreen(
                     }
                 }
 
-                // BUDGET SECTION
                 if (budgets.isNotEmpty()) {
                     item {
                         AnimatedVisibility(
@@ -163,7 +168,6 @@ fun HomeScreen(
                     }
                 }
 
-                // QUICK STATS ROW
                 item {
                     AnimatedVisibility(
                         visible = visible,
@@ -178,7 +182,6 @@ fun HomeScreen(
                     }
                 }
 
-                // RECENT TRANSACTIONS HEADER
                 item {
                     AnimatedVisibility(
                         visible = visible,
@@ -224,7 +227,6 @@ fun HomeScreen(
                     }
                 }
 
-                // TRANSACTION LIST
                 items(recentExpenses, key = { it.id }) { expense ->
                     val dismissScope = rememberCoroutineScope()
                     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -293,7 +295,6 @@ fun HomeScreen(
                     }
                 }
 
-                // EMPTY STATE
                 if (recentExpenses.isEmpty()) {
                     item {
                         AnimatedVisibility(
@@ -306,7 +307,6 @@ fun HomeScreen(
                 }
             }
 
-            // MODERN INPUT AREA
             AnimatedVisibility(
                 visible = visible,
                 enter = fadeIn(animationSpec = tween(600, delayMillis = 500)) +
@@ -360,7 +360,6 @@ fun ModernHeader(
         title = "Áttekintés",
         subtitle = "Pénzügyi aktivitásod"
     ) {
-        // Budget Setup Icon
         IconButton(onClick = onBudgetClick) {
             Icon(
                 Icons.Default.AccountBalance,
@@ -369,7 +368,6 @@ fun ModernHeader(
                 modifier = Modifier.size(26.dp)
             )
         }
-        // Settings Icon
         IconButton(onClick = onSettingsClick) {
             Icon(
                 Icons.Default.Settings,
@@ -398,30 +396,60 @@ fun EnhancedBalanceCard(
         label = "rolling_balance"
     )
 
+    // Green gradient — replaces the blue primary/primaryContainer colours
+    val cardGradient = Brush.linearGradient(
+        colorStops = arrayOf(
+            0.0f to CardGreenDark,
+            1.0f to CardGreenLight
+        ),
+        start = Offset(0f, 0f),
+        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(
                 elevation = 8.dp,
                 shape = RoundedCornerShape(24.dp),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                spotColor = CardGreenDark.copy(alpha = 0.25f)
             ),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = RoundedCornerShape(24.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    brush = Brush.linearGradient(
-                        colorStops = arrayOf(
-                            0.0f to MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                            0.6f to MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            1.0f to Color.Transparent
-                        )
-                    )
-                )
+                .background(brush = cardGradient)
         ) {
+            // Concentric ripple rings: like a stone dropped in water.
+            // All arcs share the same origin (bottom-right corner), each ring a larger radius.
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round)
+                val ox = size.width        // ripple origin x: right edge
+                val oy = size.height       // ripple origin y: bottom edge
+                // Five rings, smallest to largest — only the top-left arc of each is visible
+                val radii = listOf(
+                    size.width * 0.38f,
+                    size.width * 0.56f,
+                    size.width * 0.74f,
+                    size.width * 0.92f,
+                    size.width * 1.10f
+                )
+                val alphas = listOf(0.27f, 0.21f, 0.16f, 0.09f, 0.04f)
+                radii.zip(alphas).forEach { (r, alpha) ->
+                    drawArc(
+                        color = CardRippleColor.copy(alpha = alpha),
+                        startAngle = 160f,   // ~8 oclock
+                        sweepAngle = 110f,   // sweeps to ~11 oclock
+                        useCenter = false,
+                        topLeft = Offset(ox - r, oy - r),
+                        size = Size(r * 2f, r * 2f),
+                        style = stroke
+                    )
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -437,25 +465,26 @@ fun EnhancedBalanceCard(
                             Icon(
                                 imageVector = Icons.Default.AccountBalanceWallet,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = Color.White.copy(alpha = 0.75f),
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Egyenleg",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = Color.White.copy(alpha = 0.75f),
                                 fontWeight = FontWeight.Medium
                             )
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
+                        // Amount: white on the green card (red if negative)
                         Text(
                             text = "${formatAmount(animatedTotal.toDouble())} Ft",
                             style = MaterialTheme.typography.displaySmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (total < 0) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary
+                            color = if (total < 0) Color(0xFFFF6B6B) else Color.White
                         )
                     }
                 }
@@ -493,7 +522,7 @@ fun CategoryPill(
 ) {
     Surface(
         modifier = modifier,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        color = Color.White.copy(alpha = 0.15f),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
@@ -503,7 +532,7 @@ fun CategoryPill(
             Text(
                 text = category,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.75f),
                 fontSize = 10.sp,
                 maxLines = 1
             )
@@ -511,7 +540,7 @@ fun CategoryPill(
             Text(
                 text = "${formatAmount(amount)} Ft",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = Color.White,
                 fontWeight = FontWeight.Bold,
                 fontSize = 11.sp
             )
