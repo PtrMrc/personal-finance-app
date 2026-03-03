@@ -187,9 +187,15 @@ fun LearningScreen(viewModel: HomeViewModel) {
             }
 
             item {
-                Spacer(modifier = Modifier.height(16.dp))
-                CorrectionRateSection(viewModel = viewModel)
-                Spacer(modifier = Modifier.height(16.dp))
+                AnimatedVisibility(
+                    visible = visible,
+                    enter = fadeIn(tween(600, delayMillis = 300)) +
+                            slideInVertically(tween(600, delayMillis = 300))
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    CorrectionRateSection(viewModel = viewModel)
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
 
             item {
