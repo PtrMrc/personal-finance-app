@@ -12,11 +12,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [
         Expense::class,
         RecurringItem::class,
-        WordCategoryCount::class,      // For Naive Bayes
-        ModelPerformance::class,         // For ensemble tracking
-        Budget::class
+        WordCategoryCount::class,
+        ModelPerformance::class,
+        Budget::class,
+        CategoryCorrectionStat::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -27,6 +28,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun wordCategoryCountDao(): WordCategoryCountDao
     abstract fun modelPerformanceDao(): ModelPerformanceDao
     abstract fun budgetDao(): BudgetDao
+    abstract fun categoryCorrectionStatDao(): CategoryCorrectionStatDao
 
     companion object {
         @Volatile
@@ -39,37 +41,41 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "expense_database"
                 )
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
-
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
                 INSTANCE = instance
                 instance
             }
         }
 
-        /**
-         * Migration from version 4 to 5
-         * Adds budgets table
-         */
-        private val MIGRATION_4_5 = object : Migration(4, 5) {
+        /** Migration 5 → 6: adds category_correction_stats table */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""
-                    CREATE TABLE IF NOT EXISTS `budgets` (
-                        `category` TEXT NOT NULL, 
-                        `monthlyLimit` REAL NOT NULL, 
+                    CREATE TABLE IF NOT EXISTS `category_correction_stats` (
+                        `category` TEXT NOT NULL,
+                        `totalSuggestions` INTEGER NOT NULL DEFAULT 0,
+                        `totalCorrections` INTEGER NOT NULL DEFAULT 0,
                         PRIMARY KEY(`category`)
                     )
                 """)
             }
         }
 
-        /**
-         * Migration from version 3 to 4
-         * Adds word_category_count and model_performance tables
-         */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `budgets` (
+                        `category` TEXT NOT NULL,
+                        `monthlyLimit` REAL NOT NULL,
+                        PRIMARY KEY(`category`)
+                    )
+                """)
+            }
+        }
+
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // Create word_category_count table
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS word_category_count (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -78,14 +84,10 @@ abstract class AppDatabase : RoomDatabase() {
                         count INTEGER NOT NULL
                     )
                 """)
-
-                // Create unique index on (word, category)
                 db.execSQL("""
-                    CREATE UNIQUE INDEX IF NOT EXISTS index_word_category_count_word_category 
+                    CREATE UNIQUE INDEX IF NOT EXISTS index_word_category_count_word_category
                     ON word_category_count(word, category)
                 """)
-
-                // Create model_performance table
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS model_performance (
                         modelName TEXT PRIMARY KEY NOT NULL,
@@ -94,8 +96,6 @@ abstract class AppDatabase : RoomDatabase() {
                         currentWeight REAL NOT NULL
                     )
                 """)
-
-                // Initialize default model weights
                 db.execSQL("""
                     INSERT INTO model_performance (modelName, correctCount, totalCount, currentWeight)
                     VALUES ('TFLite', 0, 0, 0.6)

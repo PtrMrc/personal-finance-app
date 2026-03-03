@@ -6,9 +6,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.personalfinanceapp.data.AppDatabase
 import com.example.personalfinanceapp.data.Budget
+import com.example.personalfinanceapp.data.CategoryCorrectionStat
 import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.data.RecurringItem
 import com.example.personalfinanceapp.data.repository.BudgetRepository
+import com.example.personalfinanceapp.data.repository.CategoryCorrectionRepository
 import com.example.personalfinanceapp.data.repository.ExpenseRepository
 import com.example.personalfinanceapp.data.repository.NaiveBayesRepository
 import com.example.personalfinanceapp.data.repository.RecurringRepository
@@ -54,6 +56,12 @@ class HomeViewModel(
         naiveBayesRepository = naiveBayesRepository,
         modelPerformanceDao = database.modelPerformanceDao()
     )
+
+    private val correctionRepository = CategoryCorrectionRepository(
+        database.categoryCorrectionStatDao()
+    )
+
+    val correctionStats: Flow<List<CategoryCorrectionStat>> = correctionRepository.allStats
 
     val allExpenses: Flow<List<Expense>> = expenseRepository.allExpenses
     val totalSpending: Flow<Double?> = expenseRepository.totalSpending
@@ -164,8 +172,17 @@ class HomeViewModel(
     ) {
         viewModelScope.launch {
             try {
+                // Train Naive Bayes and adjust ensemble weights
                 ensembleModel.recordUserChoice(title, ensemblePrediction, userChoice)
-                Log.d("HomeViewModel", "Recorded user choice and updated weights")
+
+                // Record whether the AI suggestion was accepted or corrected
+                correctionRepository.recordPrediction(
+                    aiSuggestedCategory = ensemblePrediction.finalCategory,
+                    userChosenCategory = userChoice
+                )
+
+                Log.d("HomeViewModel", "Recorded user choice. " +
+                        "AI=${ensemblePrediction.finalCategory}, User=$userChoice")
             } catch (e: Exception) {
                 Log.e("HomeViewModel", "Failed to record user choice", e)
             }
