@@ -50,7 +50,6 @@ class HomeViewModel(
     private val tfliteClassifier = ExpenseClassifier(application)
 
     private val ensembleModel = AdaptiveEnsembleModel(
-        context = application,
         tfliteClassifier = tfliteClassifier,
         naiveBayesRepository = naiveBayesRepository,
         modelPerformanceDao = database.modelPerformanceDao()

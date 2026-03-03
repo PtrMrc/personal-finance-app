@@ -8,7 +8,7 @@ import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.charset.Charset
 
-class ExpenseClassifier(private val context: Context) {
+class ExpenseClassifier(private val context: Context) : TFLiteClassifierInterface {
 
     private var interpreter: Interpreter? = null
     private var vocab: Map<String, Int> = emptyMap()
@@ -42,7 +42,6 @@ class ExpenseClassifier(private val context: Context) {
     }
 
     private fun loadModel() {
-        // This looks for the file in the 'assets' folder
         val fileDescriptor = context.assets.openFd("expense_classifier.tflite")
         val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
         val fileChannel = inputStream.channel
@@ -68,12 +67,11 @@ class ExpenseClassifier(private val context: Context) {
         vocab = map
     }
 
-    fun classify(text: String): String? {
+    override fun classify(text: String): String? {
         if (interpreter == null) return null
 
         val tokens = tokenize(text)
 
-        // Input: [1, 20] (1 sentence, 20 words)
         val inputBuffer = Array(1) { FloatArray(maxLength) }
         for (i in tokens.indices) {
             if (i < maxLength) {
@@ -81,20 +79,15 @@ class ExpenseClassifier(private val context: Context) {
             }
         }
 
-        // Output: [1, 6] (1 prediction, 6 categories)
         val outputBuffer = Array(1) { FloatArray(englishCategories.size) }
-
         interpreter?.run(inputBuffer, outputBuffer)
 
         val probabilities = outputBuffer[0]
         val maxScore = probabilities.maxOrNull() ?: 0f
         val maxIndex = probabilities.indices.maxByOrNull { probabilities[it] } ?: -1
 
-        if (maxScore < confidenceThreshold) {
-            return null // Not sure enough
-        }
+        if (maxScore < confidenceThreshold) return null
 
-        // Return Hungarian category instead of English
         val englishCategory = englishCategories[maxIndex]
         return categoryMapping[englishCategory] ?: englishCategory
     }
@@ -105,7 +98,7 @@ class ExpenseClassifier(private val context: Context) {
 
         for (word in words) {
             if (word.isBlank()) continue
-            val id = vocab[word] ?: 1 // 1 is <OOV> (Unknown)
+            val id = vocab[word] ?: 1
             tokenList.add(id)
         }
 

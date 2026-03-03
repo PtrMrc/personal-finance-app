@@ -1,9 +1,8 @@
 package com.example.personalfinanceapp.ml
 
-import android.content.Context
 import android.util.Log
 import com.example.personalfinanceapp.data.ModelPerformanceDao
-import com.example.personalfinanceapp.data.repository.NaiveBayesRepository
+import com.example.personalfinanceapp.data.repository.NaiveBayesSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
@@ -22,9 +21,8 @@ import kotlinx.coroutines.withContext
  *
  */
 class AdaptiveEnsembleModel(
-    private val context: Context,
-    private val tfliteClassifier: ExpenseClassifier,
-    private val naiveBayesRepository: NaiveBayesRepository,
+    private val tfliteClassifier: TFLiteClassifierInterface,
+    private val naiveBayesRepository: NaiveBayesSource,
     private val modelPerformanceDao: ModelPerformanceDao
 ) {
 
@@ -401,11 +399,11 @@ class AdaptiveEnsembleModel(
  */
 data class EnsemblePrediction(
     val finalCategory: String,          // The final category chosen by ensemble
-    val confidence: Double,              // Overall confidence (0.0 to 1.0)
+    val confidence: Double,             // Overall confidence (0.0 to 1.0)
     val tflitePrediction: ModelPrediction?,     // TFLite's prediction
     val naiveBayesPrediction: ModelPrediction?, // Naive Bayes prediction
-    val weights: ModelWeights,           // Current model weights
-    val explanation: String              // Why this decision was made
+    val weights: ModelWeights,          // Current model weights
+    val explanation: String             // Why this decision was made
 )
 
 /**
@@ -422,8 +420,8 @@ data class ModelPrediction(
  * Current model weights
  */
 data class ModelWeights(
-    val tfliteWeight: Double,      // Weight for TFLite (0.0 to 1.0)
-    val naiveBayesWeight: Double   // Weight for Naive Bayes (0.0 to 1.0)
+    val tfliteWeight: Double,     // Weight for TFLite (0.0 to 1.0)
+    val naiveBayesWeight: Double  // Weight for Naive Bayes (0.0 to 1.0)
     // Note: tfliteWeight + naiveBayesWeight should equal 1.0
 )
 
@@ -431,10 +429,10 @@ data class ModelWeights(
  * Ensemble statistics for UI display
  */
 data class EnsembleStats(
-    val tfliteWeight: Double,           // Current TFLite weight
-    val naiveBayesWeight: Double,       // Current Naive Bayes weight
-    val tfliteAccuracy: Double,         // TFLite accuracy (0.0 to 1.0)
-    val naiveBayesAccuracy: Double,     // Naive Bayes accuracy (0.0 to 1.0)
-    val tflitePredictions: Int,         // Total predictions from TFLite
-    val naiveBayesPredictions: Int      // Total predictions from Naive Bayes
+    val tfliteWeight: Double,          // Current TFLite weight
+    val naiveBayesWeight: Double,      // Current Naive Bayes weight
+    val tfliteAccuracy: Double,        // TFLite accuracy (0.0 to 1.0)
+    val naiveBayesAccuracy: Double,    // Naive Bayes accuracy (0.0 to 1.0)
+    val tflitePredictions: Int,        // Total predictions from TFLite
+    val naiveBayesPredictions: Int     // Total predictions from Naive Bayes
 )
