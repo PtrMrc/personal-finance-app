@@ -3,6 +3,7 @@ package com.example.personalfinanceapp.data.repository
 import com.example.personalfinanceapp.data.CategoryTuple
 import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.data.ExpenseDao
+import com.example.personalfinanceapp.data.WeeklySpendTuple
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 
@@ -16,6 +17,11 @@ class ExpenseRepository(private val expenseDao: ExpenseDao) {
 
     val categoryBreakdown: Flow<List<CategoryTuple>> = expenseDao.getCategoryBreakdown()
         .catch { emit(emptyList()) }
+
+    /** Weekly spend per category — used for anomaly detection in HomeViewModel. */
+    val weeklySpendByCategory: Flow<List<WeeklySpendTuple>> =
+        expenseDao.getWeeklySpendByCategory()
+            .catch { emit(emptyList()) }
 
     suspend fun addExpense(expense: Expense): Result<Unit> {
         return try {

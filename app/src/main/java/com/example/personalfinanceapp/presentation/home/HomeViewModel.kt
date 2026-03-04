@@ -26,6 +26,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.util.Calendar
 
@@ -38,6 +39,30 @@ data class BudgetProgress(
     val isWarning = percentage in 0.8..<1.0 // 80% to 99%
     val isExceeded = percentage >= 1.0 // 100%+
 }
+
+/**
+ * Represents a spending anomaly for a single category.
+ *
+ * @param category          Hungarian category name as stored in the DB.
+ * @param currentWeekSpend  Total spend in the current 7-day bucket.
+ * @param historicalAverage Mean weekly spend over the previous 8 complete weeks.
+ * @param percentageAbove   How much above average as a fraction (e.g. 0.75 = 75 % above).
+ */
+data class AnomalyAlert(
+    val category: String,
+    val currentWeekSpend: Double,
+    val historicalAverage: Double,
+    val percentageAbove: Double
+)
+
+// Number of 7-day buckets (complete weeks) used to build the baseline
+private const val HISTORY_WEEKS = 8
+
+// Minimum fraction above the average that triggers an alert (0.5 = 50 %)
+private const val ANOMALY_THRESHOLD = 0.5
+
+// Minimum number of individual expenses in the current week before we fire an alert
+private const val MIN_EXPENSES_THIS_WEEK = 2
 
 class HomeViewModel(
     application: Application,
@@ -122,6 +147,71 @@ class HomeViewModel(
         }.sortedByDescending { it.percentage } // Put most urgent at the top
 
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // --- SPENDING ANOMALY DETECTION ---
+
+    /**
+     * Emits a list of [AnomalyAlert]s whenever the weekly spend data changes.
+     *
+     * Algorithm:
+     *  1. Determine the current week bucket  = now / 604_800_000
+     *  2. For each category, split rows into "current week" vs. "history" (buckets
+     *     [currentWeek-HISTORY_WEEKS .. currentWeek-1]).
+     *  3. Compute the historical average over however many of those weeks have data
+     *     (weeks with zero spend have no row, so we normalise over HISTORY_WEEKS to
+     *     keep the average honest — a week with no spend still counts as 0).
+     *  4. Only raise an alert when:
+     *     - historicalAverage > 0  (no baseline → no alert)
+     *     - currentWeekSpend > historicalAverage * (1 + ANOMALY_THRESHOLD)
+     *     - current-week expenseCount >= MIN_EXPENSES_THIS_WEEK
+     */
+    val anomalyAlerts: StateFlow<List<AnomalyAlert>> =
+        expenseRepository.weeklySpendByCategory
+            .map { rows ->
+                val currentWeek = System.currentTimeMillis() / 604_800_000L
+                val historyStart = currentWeek - HISTORY_WEEKS  // inclusive lower bound
+
+                // Group all DB rows by category
+                val byCategory = rows.groupBy { it.category }
+
+                val alerts = mutableListOf<AnomalyAlert>()
+
+                for ((category, weekRows) in byCategory) {
+                    // Row for the current week (may be absent if no spend yet)
+                    val currentRow = weekRows.firstOrNull { it.weekNumber == currentWeek }
+
+                    // Only evaluate if there are at least MIN_EXPENSES_THIS_WEEK this week
+                    if ((currentRow?.expenseCount ?: 0) < MIN_EXPENSES_THIS_WEEK) continue
+
+                    val currentSpend = currentRow?.total ?: 0.0
+
+                    // Rows that fall within the historical window (exclude current week)
+                    val historicRows = weekRows.filter { it.weekNumber in historyStart until currentWeek }
+
+                    // Sum up all historical spend; divide by HISTORY_WEEKS so weeks with
+                    // zero spend (= no row) still drag the average down correctly.
+                    val historicalTotal = historicRows.sumOf { it.total }
+                    val historicalAverage = historicalTotal / HISTORY_WEEKS
+
+                    // No usable baseline — skip
+                    if (historicalAverage <= 0.0) continue
+
+                    val fractionAbove = (currentSpend - historicalAverage) / historicalAverage
+                    if (fractionAbove > ANOMALY_THRESHOLD) {
+                        alerts += AnomalyAlert(
+                            category = category,
+                            currentWeekSpend = currentSpend,
+                            historicalAverage = historicalAverage,
+                            percentageAbove = fractionAbove
+                        )
+                    }
+                }
+
+                // Most severe anomaly first
+                alerts.sortedByDescending { it.percentageAbove }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun setBudget(category: String, limit: Double) {
         viewModelScope.launch {
             budgetRepository.setBudget(Budget(category, limit))

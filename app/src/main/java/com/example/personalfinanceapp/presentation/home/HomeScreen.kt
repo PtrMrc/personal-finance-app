@@ -40,11 +40,17 @@ import com.example.personalfinanceapp.utils.formatAmount
 import com.example.personalfinanceapp.utils.formatDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 // Green palette for the balance card
 private val CardGreenDark  = Color(0xFF071A24)   // deep teal-slate (top-left of gradient)
 private val CardGreenLight = Color(0xFF0E3347)   // mid dark teal (bottom-right of gradient)
 private val CardRippleColor   = Color(0xFF1FA884)  // teal ripple lines
+
+// Amber palette for anomaly cards — warm but not alarming
+private val AnomalyAmber     = Color(0xFFF59E0B)
+private val AnomalyAmberBg   = Color(0xFFFFFBEB)
+private val AnomalyAmberDark = Color(0xFF92400E)
 
 @Composable
 fun HomeScreen(
@@ -90,6 +96,11 @@ fun HomeScreen(
     var activeExpense by remember { mutableStateOf<Expense?>(null) }
 
     val budgets by viewModel.budgetProgress.collectAsState()
+    val anomalies by viewModel.anomalyAlerts.collectAsState()
+
+    // Track which anomaly categories the user has dismissed this session
+    val dismissedCategories = remember { mutableStateSetOf<String>() }
+    val visibleAnomalies = anomalies.filter { it.category !in dismissedCategories }
 
     fun openNewDraft() {
         if (textInput.isBlank()) return
@@ -164,6 +175,24 @@ fun HomeScreen(
                                     slideInVertically(animationSpec = tween(600, delayMillis = 250))
                         ) {
                             BudgetProgressSection(budgets)
+                        }
+                    }
+                }
+
+                // Anomaly alert cards — one per category, each individually dismissible
+                if (visibleAnomalies.isNotEmpty()) {
+                    items(visibleAnomalies, key = { "anomaly_${it.category}" }) { alert ->
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn(animationSpec = tween(400)) +
+                                    expandVertically(animationSpec = tween(400)),
+                            exit  = fadeOut(animationSpec = tween(300)) +
+                                    shrinkVertically(animationSpec = tween(300))
+                        ) {
+                            AnomalyAlertCard(
+                                alert = alert,
+                                onDismiss = { dismissedCategories.add(alert.category) }
+                            )
                         }
                     }
                 }
@@ -351,6 +380,85 @@ fun HomeScreen(
     }
 }
 
+// ---------------------------------------------------------------------------
+// Anomaly alert card
+// ---------------------------------------------------------------------------
+
+/**
+ * A dismissible amber warning card shown when spending in [alert.category]
+ * is more than 50 % above the user's historical weekly average.
+ */
+@Composable
+fun AnomalyAlertCard(
+    alert: AnomalyAlert,
+    onDismiss: () -> Unit
+) {
+    val percentInt = (alert.percentageAbove * 100).roundToInt()
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = AnomalyAmberBg),
+        border = androidx.compose.foundation.BorderStroke(1.dp, AnomalyAmber.copy(alpha = 0.6f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Warning icon
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(AnomalyAmber.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.WarningAmber,
+                    contentDescription = null,
+                    tint = AnomalyAmber,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Text block
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Szokatlanul magas kiadás",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = AnomalyAmberDark
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "${alert.category}: +${percentInt}% az átlaghoz képest " +
+                            "(${formatAmount(alert.currentWeekSpend)} Ft vs. " +
+                            "${formatAmount(alert.historicalAverage)} Ft/hét)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AnomalyAmberDark.copy(alpha = 0.8f),
+                    lineHeight = 16.sp
+                )
+            }
+
+            // Dismiss button
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Bezárás",
+                    tint = AnomalyAmberDark.copy(alpha = 0.6f),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun ModernHeader(
     onSettingsClick: () -> Unit,
@@ -396,7 +504,6 @@ fun EnhancedBalanceCard(
         label = "rolling_balance"
     )
 
-    // Green gradient — replaces the blue primary/primaryContainer colours
     val cardGradient = Brush.linearGradient(
         colorStops = arrayOf(
             0.0f to CardGreenDark,
@@ -422,13 +529,10 @@ fun EnhancedBalanceCard(
                 .fillMaxWidth()
                 .background(brush = cardGradient)
         ) {
-            // Concentric ripple rings: like a stone dropped in water.
-            // All arcs share the same origin (bottom-right corner), each ring a larger radius.
             Canvas(modifier = Modifier.matchParentSize()) {
                 val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round)
-                val ox = size.width        // ripple origin x: right edge
-                val oy = size.height       // ripple origin y: bottom edge
-                // Five rings, smallest to largest — only the top-left arc of each is visible
+                val ox = size.width
+                val oy = size.height
                 val radii = listOf(
                     size.width * 0.38f,
                     size.width * 0.56f,
@@ -440,8 +544,8 @@ fun EnhancedBalanceCard(
                 radii.zip(alphas).forEach { (r, alpha) ->
                     drawArc(
                         color = CardRippleColor.copy(alpha = alpha),
-                        startAngle = 160f,   // ~8 oclock
-                        sweepAngle = 110f,   // sweeps to ~11 oclock
+                        startAngle = 160f,
+                        sweepAngle = 110f,
                         useCenter = false,
                         topLeft = Offset(ox - r, oy - r),
                         size = Size(r * 2f, r * 2f),
@@ -479,7 +583,6 @@ fun EnhancedBalanceCard(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Amount: white on the green card (red if negative)
                         Text(
                             text = "${formatAmount(animatedTotal.toDouble())} Ft",
                             style = MaterialTheme.typography.displaySmall,

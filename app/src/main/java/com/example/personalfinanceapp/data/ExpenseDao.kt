@@ -44,9 +44,35 @@ interface ExpenseDao {
     // Find the most recent category for a specific title
     @Query("SELECT category FROM expense_table WHERE title = :title ORDER BY date DESC LIMIT 1")
     suspend fun getLastCategoryForTitle(title: String): String?
+
+    /**
+     * Returns spend totals grouped by category and ISO week bucket.
+     *
+     * Week bucket = epoch-ms / 604_800_000  (integer division → one value per 7-day period).
+     * Only expenses (isIncome = 0) are included.
+     * Used by HomeViewModel for spending anomaly detection.
+     */
+    @Query("""
+        SELECT  category,
+                (date / 604800000)  AS weekNumber,
+                SUM(amount)         AS total,
+                COUNT(*)            AS expenseCount
+        FROM    expense_table
+        WHERE   isIncome = 0
+        GROUP   BY category, weekNumber
+        ORDER   BY category, weekNumber
+    """)
+    fun getWeeklySpendByCategory(): Flow<List<WeeklySpendTuple>>
 }
 
 data class CategoryTuple(
     @androidx.room.ColumnInfo(name = "category") val category: String,
     @androidx.room.ColumnInfo(name = "total") val total: Double
+)
+
+data class WeeklySpendTuple(
+    @androidx.room.ColumnInfo(name = "category")     val category: String,
+    @androidx.room.ColumnInfo(name = "weekNumber")   val weekNumber: Long,
+    @androidx.room.ColumnInfo(name = "total")        val total: Double,
+    @androidx.room.ColumnInfo(name = "expenseCount") val expenseCount: Int
 )
