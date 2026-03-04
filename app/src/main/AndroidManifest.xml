@@ -11,6 +11,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PersonalFinanceApp">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -18,10 +19,25 @@
             android:theme="@style/Theme.PersonalFinanceApp">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            FileProvider for sharing the research export .txt file.
+            authority must match ExportManager.AUTHORITY ("…fileprovider").
+            file_paths.xml lives at  res/xml/file_paths.xml
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.example.personalfinanceapp.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
     </application>
 
 </manifest>

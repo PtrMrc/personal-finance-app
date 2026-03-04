@@ -75,4 +75,7 @@ interface CategoryCorrectionStatDao {
 
     @Query("DELETE FROM category_correction_stats")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM category_correction_stats ORDER BY category ASC")
+    suspend fun getAll(): List<CategoryCorrectionStat>
 }

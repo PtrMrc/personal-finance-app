@@ -114,4 +114,15 @@ interface WordCategoryCountDao {
         LIMIT :limit
     """)
     suspend fun getTopWordsForCategory(category: String, limit: Int = 10): List<WordCategoryCount>
+
+    /**
+     * Get the top N most frequent word-category pairs across ALL categories.
+     * Used by ExportManager for the research report.
+     */
+    @Query("""
+        SELECT * FROM word_category_count
+        ORDER BY count DESC
+        LIMIT :limit
+    """)
+    suspend fun getTopWords(limit: Int = 10): List<WordCategoryCount>
 }

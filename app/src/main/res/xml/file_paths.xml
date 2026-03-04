@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    FileProvider paths config.
+    Place this file at:  app/src/main/res/xml/file_paths.xml
+
+    Exposes the "exports" sub-folder inside the app's internal cache directory
+    so FileProvider can hand out content:// URIs for the generated .txt file.
+-->
+<paths>
+    <cache-path
+        name="exports"
+        path="exports/" />
+</paths>
