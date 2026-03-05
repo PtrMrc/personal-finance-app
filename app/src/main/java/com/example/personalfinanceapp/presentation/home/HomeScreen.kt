@@ -546,7 +546,7 @@ fun EnhancedBalanceCard(
         AppTheme.LIGHT -> CardBaseLight1 to CardBaseLight2
         else           -> CardBaseSimple1 to CardBaseSimple2
     }
-    val blobAlpha = if (appTheme == AppTheme.OLED) 0.22f else 0.45f
+    val blobAlpha = if (appTheme == AppTheme.OLED) 0.22f else 0.55f
     val shadowColor = if (appTheme == AppTheme.LIGHT) CardBaseLight1 else BlobBlue
 
     Card(

@@ -3,6 +3,7 @@ package com.example.personalfinanceapp.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -15,6 +16,9 @@ interface RecurringDao {
 
     @Insert
     suspend fun insertRecurringItem(item: RecurringItem)
+
+    @Update
+    suspend fun updateRecurringItem(item: RecurringItem)
 
     // Updates the timestamp so we don't pay it twice in one month
     @Query("UPDATE recurring_items SET lastProcessedDate = :date WHERE id = :id")

@@ -307,6 +307,17 @@ class HomeViewModel(
         }
     }
 
+    fun updateRecurringItem(item: RecurringItem) {
+        viewModelScope.launch {
+            recurringRepository.updateRecurringItem(item)
+                .onFailure { e ->
+                    _errorMessage.value = "Hiba az ismétlődő tétel frissítésekor: ${e.message}"
+                    Log.e("HomeViewModel", "Failed to update recurring item", e)
+                }
+                .onSuccess { _errorMessage.value = null }
+        }
+    }
+
     fun deleteRecurringItem(item: RecurringItem) {
         viewModelScope.launch {
             recurringRepository.deleteRecurringItem(item)

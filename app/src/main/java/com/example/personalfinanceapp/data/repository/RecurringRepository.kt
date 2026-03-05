@@ -27,4 +27,9 @@ class RecurringRepository(private val recurringDao: RecurringDao) {
             Result.failure(e)
         }
     }
+
+
+    suspend fun updateRecurringItem(item: RecurringItem): Result<Unit> = runCatching {
+        recurringDao.updateRecurringItem(item)
+    }
 }

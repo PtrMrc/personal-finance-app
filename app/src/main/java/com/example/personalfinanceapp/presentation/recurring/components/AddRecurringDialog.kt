@@ -1,9 +1,6 @@
 package com.example.personalfinanceapp.presentation.recurring.components
 
 import androidx.compose.foundation.background
-import com.example.personalfinanceapp.utils.Validation
-import com.example.personalfinanceapp.utils.ValidationResult
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,27 +36,43 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.example.personalfinanceapp.data.Frequency
+import com.example.personalfinanceapp.data.RecurringItem
+import com.example.personalfinanceapp.utils.Validation
+import com.example.personalfinanceapp.utils.ValidationResult
 import com.example.personalfinanceapp.utils.mapFrequency
 
+// Mirrors the category list in ExpenseDialog — "Bevétel" excluded here
+// because income is handled separately by the income toggle.
+private val EXPENSE_CATEGORIES = listOf(
+    "Élelmiszer", "Utazás", "Szórakozás", "Számlák", "Egészség", "Egyéb"
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddRecurringDialog(
+    existingItem: RecurringItem? = null,
     onDismiss: () -> Unit,
-    onConfirm: (String, Double, Boolean, Frequency, Int) -> Unit
+    onConfirm: (String, Double, Boolean, Frequency, Int, String) -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
-    var isIncome by remember { mutableStateOf(false) }
-    var day by remember { mutableStateOf("1") }
-    var selectedFreq by remember { mutableStateOf(Frequency.MONTHLY) }
+    val isEditing = existingItem != null
+
+    var title by remember { mutableStateOf(existingItem?.title ?: "") }
+    var amount by remember { mutableStateOf(existingItem?.amount?.toString() ?: "") }
+    var isIncome by remember { mutableStateOf(existingItem?.isIncome ?: false) }
+    var day by remember { mutableStateOf(existingItem?.dayOfMonth?.toString() ?: "1") }
+    var selectedFreq by remember { mutableStateOf(existingItem?.frequency ?: Frequency.MONTHLY) }
+    var selectedCategory by remember {
+        mutableStateOf(
+            if (existingItem != null && !existingItem.isIncome) existingItem.category else "Egyéb"
+        )
+    }
     var freqExpanded by remember { mutableStateOf(false) }
+    var categoryExpanded by remember { mutableStateOf(false) }
 
     var titleError by remember { mutableStateOf<String?>(null) }
     var amountError by remember { mutableStateOf<String?>(null) }
@@ -82,7 +94,7 @@ fun AddRecurringDialog(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Új állandó tétel",
+                        text = if (isEditing) "Tétel szerkesztése" else "Új állandó tétel",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -113,7 +125,7 @@ fun AddRecurringDialog(
                         // Day Input
                         OutlinedTextField(
                             value = day,
-                            onValueChange = { if (it.length <= 2) day = it; dayError = null },
+                            onValueChange = { if (it.length <= 2) { day = it; dayError = null } },
                             label = { Text("Nap (1-31)") },
                             modifier = Modifier.weight(0.6f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -150,9 +162,40 @@ fun AddRecurringDialog(
                         }
                     }
 
+                    // Category Dropdown — only shown for expenses
+                    if (!isIncome) {
+                        Box {
+                            OutlinedTextField(
+                                value = selectedCategory,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Kategória") },
+                                trailingIcon = {
+                                    Icon(Icons.Default.ArrowDropDown, null,
+                                        Modifier.clickable { categoryExpanded = true })
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            DropdownMenu(
+                                expanded = categoryExpanded,
+                                onDismissRequest = { categoryExpanded = false },
+                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                            ) {
+                                EXPENSE_CATEGORIES.forEach { cat ->
+                                    DropdownMenuItem(
+                                        text = { Text(cat) },
+                                        onClick = { selectedCategory = cat; categoryExpanded = false }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // Income Toggle Card
                     Surface(
-                        color = if (isIncome) MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant,
+                        color = if (isIncome) MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                        else MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -165,18 +208,21 @@ fun AddRecurringDialog(
                             Checkbox(
                                 checked = isIncome,
                                 onCheckedChange = { isIncome = it },
-                                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.secondary)
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = MaterialTheme.colorScheme.secondary
+                                )
                             )
                             Text(
                                 text = "Bevétel",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
-                                color = if (isIncome) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isIncome) MaterialTheme.colorScheme.secondary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     // Buttons
                     Row(
@@ -200,18 +246,28 @@ fun AddRecurringDialog(
                                 if (aVal is ValidationResult.Error) amountError = aVal.message
                                 if (dVal is ValidationResult.Error) dayError = dVal.message
 
-                                if (tVal is ValidationResult.Success && aVal is ValidationResult.Success && dVal is ValidationResult.Success) {
-                                    onConfirm(title, amount.toDouble(), isIncome, selectedFreq, day.toInt())
+                                if (tVal is ValidationResult.Success &&
+                                    aVal is ValidationResult.Success &&
+                                    dVal is ValidationResult.Success
+                                ) {
+                                    val category = if (isIncome) "Bevétel" else selectedCategory
+                                    onConfirm(title, amount.toDouble(), isIncome, selectedFreq, day.toInt(), category)
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Mentés", fontWeight = FontWeight.Bold)
+                            Text(
+                                text = if (isEditing) "Mentés" else "Hozzáadás",
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
             }
-        })
+        }
+    )
 }
