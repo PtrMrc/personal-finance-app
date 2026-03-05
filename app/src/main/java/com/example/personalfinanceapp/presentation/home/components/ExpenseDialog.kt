@@ -16,20 +16,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,10 +41,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -78,7 +71,6 @@ fun ExpenseDialog(
     var category by remember { mutableStateOf(initialCategory) }
     var description by remember { mutableStateOf(initialDescription) }
 
-    var showError by remember { mutableStateOf(false) }
     var titleError by remember { mutableStateOf<String?>(null) }
     var amountError by remember { mutableStateOf<String?>(null) }
 
@@ -86,17 +78,25 @@ fun ExpenseDialog(
     val categories = listOf("Élelmiszer", "Utazás", "Szórakozás", "Számlák", "Egészség", "Bevétel", "Egyéb")
 
     var currentPrediction by remember { mutableStateOf<EnsemblePrediction?>(null) }
+    // Tracks the last category the AI set, so we can tell if the user manually overrode it
+    var lastAiSuggestedCategory by remember { mutableStateOf<String?>(null) }
     var showLearning by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
+    // Trigger AI prediction after the user pauses typing (debounce 500ms)
     LaunchedEffect(title) {
         if (title.length >= 3) {
             delay(500)
             val prediction = viewModel.predictCategoryEnsemble(title)
             currentPrediction = prediction
 
-            if (category.isEmpty() || category == "Egyéb") {
+            // Only follow the new prediction if the user hasn't manually
+            // changed the category away from the AI's previous suggestion.
+            val userHasOverridden = lastAiSuggestedCategory != null
+                    && category != lastAiSuggestedCategory
+            if (!userHasOverridden) {
                 category = prediction.finalCategory
+                lastAiSuggestedCategory = prediction.finalCategory
             }
         } else {
             currentPrediction = null
@@ -141,16 +141,6 @@ fun ExpenseDialog(
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    AnimatedVisibility(
-                        visible = currentPrediction != null,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        currentPrediction?.let { prediction ->
-                            AIPredictionCard(prediction = prediction)
-                        }
-                    }
-
                     OutlinedTextField(
                         value = amount,
                         onValueChange = {
@@ -166,12 +156,16 @@ fun ExpenseDialog(
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    if (showError) {
-                        Text(
-                            text = "Kérlek add meg a nevet és az összeget!",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                    // AI prediction card — only shown when a prediction is available.
+                    // Uses the shared AIPredictionCard from AIPredictionComponents.kt.
+                    AnimatedVisibility(
+                        visible = currentPrediction != null,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        currentPrediction?.let { prediction ->
+                            AIPredictionCard(prediction = prediction)
+                        }
                     }
 
                     Box {
@@ -181,7 +175,11 @@ fun ExpenseDialog(
                             label = { Text("Kategória") },
                             readOnly = true,
                             trailingIcon = {
-                                Icon(Icons.Default.ArrowDropDown, "Select", Modifier.clickable { expanded = true })
+                                Icon(
+                                    Icons.Default.ArrowDropDown,
+                                    contentDescription = "Kategória választó",
+                                    modifier = Modifier.clickable { expanded = true }
+                                )
                             },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
@@ -195,6 +193,8 @@ fun ExpenseDialog(
                                 DropdownMenuItem(
                                     text = { Text(cat) },
                                     onClick = {
+                                        // If the user picks a different category than the AI
+                                        // suggested, record it so the model can learn.
                                         if (currentPrediction != null && cat != category) {
                                             viewModel.recordCategoryChoice(
                                                 title = title,
@@ -208,6 +208,9 @@ fun ExpenseDialog(
                                             }
                                         }
                                         category = cat
+                                        // Mark that the user has manually chosen — AI won't
+                                        // override the dropdown on future predictions anymore.
+                                        lastAiSuggestedCategory = null
                                         expanded = false
                                     }
                                 )
@@ -215,36 +218,9 @@ fun ExpenseDialog(
                         }
                     }
 
-                    AnimatedVisibility(
-                        visible = showLearning,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = "Learning",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Köszi, ezt megjegyzem!",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
+                    // "AI is learning" feedback — uses shared LearningIndicator from
+                    // AIPredictionComponents.kt.
+                    LearningIndicator(show = showLearning)
 
                     OutlinedTextField(
                         value = description,
@@ -255,7 +231,7 @@ fun ExpenseDialog(
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -279,6 +255,8 @@ fun ExpenseDialog(
                                 if (titleValidation is ValidationResult.Success && amountValidation is ValidationResult.Success) {
                                     val amt = amount.toDouble()
 
+                                    // Always record the final choice on save, so the model
+                                    // learns even if the user didn't change the dropdown.
                                     if (currentPrediction != null) {
                                         viewModel.recordCategoryChoice(
                                             title = title,
@@ -291,7 +269,9 @@ fun ExpenseDialog(
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text("Mentés", fontWeight = FontWeight.Bold)
@@ -301,102 +281,4 @@ fun ExpenseDialog(
             }
         }
     )
-}
-
-@Composable
-fun AIPredictionCard(
-    prediction: EnsemblePrediction,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Psychology,
-                    contentDescription = "AI",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "AI Javaslat",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = "${(prediction.confidence * 100).toInt()}% biztos",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            prediction.tflitePrediction?.let { tflite ->
-                ModelPredictionRow(
-                    modelName = "🤖 Robot",
-                    category = tflite.category,
-                    weight = tflite.weight,
-                    isWinner = tflite.category == prediction.finalCategory
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-
-            prediction.naiveBayesPrediction?.let { naiveBayes ->
-                ModelPredictionRow(
-                    modelName = "📊 Szokásaid",
-                    category = naiveBayes.category,
-                    weight = naiveBayes.weight,
-                    isWinner = naiveBayes.category == prediction.finalCategory
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ModelPredictionRow(
-    modelName: String,
-    category: String,
-    weight: Double,
-    isWinner: Boolean
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                color = if (isWinner) MaterialTheme.colorScheme.surface.copy(alpha = 0.5f) else Color.Transparent,
-                shape = RoundedCornerShape(4.dp)
-            )
-            .padding(4.dp)
-    ) {
-        Text(
-            text = modelName,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(100.dp)
-        )
-        Text(
-            text = category,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = if (isWinner) FontWeight.Bold else FontWeight.Normal,
-            modifier = Modifier.weight(1f)
-        )
-        if (weight > 0) {
-            Text(
-                text = "${(weight * 100).toInt()}%",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
 }

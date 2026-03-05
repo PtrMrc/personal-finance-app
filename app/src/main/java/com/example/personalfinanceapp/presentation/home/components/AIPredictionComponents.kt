@@ -13,137 +13,115 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.personalfinanceapp.ml.EnsemblePrediction
 
 /**
- * COMPACT AI Prediction Card (Hungarian)
- * Shows ensemble prediction in a clean, minimal way
+ * AI Prediction Card — clean, user-friendly (Hungarian)
  *
- * Add this to your ExpenseDialog when prediction is available
+ * Replaces both AIPredictionCard (ExpenseDialog.kt) and the old AIPredictionCardCompact.
+ * Use this everywhere a prediction needs to be shown.
+ *
+ * Shows:
+ *  - The final predicted category, prominently
+ *  - A human-readable confidence level (Biztos / Valószínű / Bizonytalan)
+ *  - A short note explaining the source (both models / habits only / pre-trained only)
+ *
+ * Does NOT show raw percentages or model weights — those are internal details.
  */
 @Composable
-fun AIPredictionCardCompact(
+fun AIPredictionCard(
     prediction: EnsemblePrediction,
     modifier: Modifier = Modifier
 ) {
+    val hasTflite = prediction.tflitePrediction != null
+    val hasNaiveBayes = prediction.naiveBayesPrediction != null
+    val bothAgree = hasTflite && hasNaiveBayes &&
+            prediction.tflitePrediction!!.category == prediction.naiveBayesPrediction!!.category
+
+    val (confidenceLabel, confidenceColor) = when {
+        prediction.confidence >= 0.80 -> "Biztos" to Color(0xFF2E7D32)       // green
+        prediction.confidence >= 0.55 -> "Valószínű" to Color(0xFFE65100)    // amber
+        else -> "Bizonytalan" to Color(0xFF757575)                            // grey
+    }
+
+    // Human-readable source note
+    val sourceNote = when {
+        bothAgree -> "Mindkét modell ugyanezt javasolta"
+        hasTflite && hasNaiveBayes -> "A modellek eltértek – legjobb becslés"
+        hasNaiveBayes && !hasTflite -> "Szokásaid alapján"
+        hasTflite && !hasNaiveBayes -> "Előre betanított modell alapján"
+        else -> null
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Header
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Psychology,
-                    contentDescription = "AI",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.Default.Psychology,
+                contentDescription = "AI",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp)
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "AI javaslat",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = "${(prediction.confidence * 100).toInt()}% biztos",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+                    text = prediction.finalCategory,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Final prediction (main)
-            Text(
-                text = "→ ${prediction.finalCategory}",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            // Show model breakdown if they disagree
-            if (prediction.tflitePrediction?.category != prediction.naiveBayesPrediction?.category) {
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    prediction.tflitePrediction?.let { tflite ->
-                        ModelChip(
-                            label = "🤖 ${tflite.category}",
-                            weight = tflite.weight,
-                            isWinner = tflite.category == prediction.finalCategory
-                        )
-                    }
-                    prediction.naiveBayesPrediction?.let { nb ->
-                        ModelChip(
-                            label = "📊 ${nb.category}",
-                            weight = nb.weight,
-                            isWinner = nb.category == prediction.finalCategory
-                        )
-                    }
+                sourceNote?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-        }
-    }
-}
 
-/**
- * Small chip showing individual model prediction
- */
-@Composable
-private fun ModelChip(
-    label: String,
-    weight: Double,
-    isWinner: Boolean
-) {
-    Surface(
-        color = if (isWinner) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-        } else {
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
-        },
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = if (isWinner) FontWeight.Bold else FontWeight.Normal
-            )
-            Text(
-                text = "${(weight * 100).toInt()}%",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Confidence badge
+            Surface(
+                color = confidenceColor.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = confidenceLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = confidenceColor,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
         }
     }
 }
 
 /**
  * Learning indicator animation (Hungarian)
- * Shows briefly when AI learns from user correction
+ * Shows briefly when AI learns from a user correction.
  */
 @Composable
-fun LearningIndicatorCompact(
+fun LearningIndicator(
     show: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -156,23 +134,24 @@ fun LearningIndicatorCompact(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(8.dp)
                 )
-                .padding(10.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = Icons.Default.TrendingUp,
                 contentDescription = "Tanulás",
-                tint = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.size(18.dp)
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "✨ Az AI tanulja a választásodat...",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
+                text = "Köszi, ezt megjegyzem!",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                fontWeight = FontWeight.Medium
             )
         }
     }
