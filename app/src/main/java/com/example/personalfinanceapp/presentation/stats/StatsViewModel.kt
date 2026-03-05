@@ -2,6 +2,8 @@ package com.example.personalfinanceapp.presentation.stats
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.personalfinanceapp.data.Expense
+import com.example.personalfinanceapp.data.repository.BudgetRepository
 import com.example.personalfinanceapp.data.repository.ExpenseRepository
 import com.example.personalfinanceapp.ml.MLMath
 import com.example.personalfinanceapp.ml.PredictionResult
@@ -19,7 +21,10 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 
-class StatsViewModel(private val repository: ExpenseRepository) : ViewModel() {
+class StatsViewModel(
+    private val repository: ExpenseRepository,
+    private val budgetRepository: BudgetRepository   // NOTE: update StatsViewModelFactory to pass this
+) : ViewModel() {
 
     private val expenses = repository.allExpenses
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -78,14 +83,41 @@ class StatsViewModel(private val repository: ExpenseRepository) : ViewModel() {
         }
     }
 
+    // ── Budget limits ─────────────────────────────────────────────────────────────
+
+    /** Map of category → monthly budget limit (HUF) for use in the forecast card. */
+    val budgetLimits: StateFlow<Map<String, Double>> = budgetRepository.allBudgets
+        .map { budgets -> budgets.associate { it.category to it.monthlyLimit } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    // ── Spending forecast (extended) ──────────────────────────────────────────────
+
+    /**
+     * Month-end spending forecast.  Now includes per-category projections, outlier count,
+     * days-of-data, and a confidence score — all carried in [PredictionResult].
+     */
     val spendingForecast: StateFlow<PredictionResult?> = expenses.map { expList ->
         val today = LocalDate.now()
         val daysInMonth = YearMonth.from(today).lengthOfMonth()
         val startOfMonth = today.withDayOfMonth(1)
         val monthToDateTotals = getDailyTotalsForRange(expList, startOfMonth, today)
-        if (monthToDateTotals.isNotEmpty()) MLMath.calculateSmartForecast(monthToDateTotals, daysInMonth)
-        else null
+
+        if (monthToDateTotals.isNotEmpty()) {
+            val currentYearMonth = YearMonth.from(today)
+            val historicalRate = MLMath.computeHistoricalDailyRate(expList, today, currentYearMonth)
+            val categories = expList.filter { !it.isIncome }.map { it.category }.distinct()
+            val categoryDailyData = categories.associateWith { cat ->
+                getDailyTotalsForRangeByCategory(expList, startOfMonth, today, cat)
+            }
+            val result = MLMath.calculateSmartForecast(monthToDateTotals, daysInMonth, historicalRate, categoryDailyData)
+            // Hide forecast if algorithm returned the "not enough data" sentinel
+            if (result.forecastedTotal == 0.0 && result.daysOfData < 3) null else result
+        } else {
+            null
+        }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    // ── Existing stats ────────────────────────────────────────────────────────────
 
     val totalThisWeek: StateFlow<Double> = expenses.map { expList ->
         val weekAgo = LocalDate.now().minusDays(7).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -148,15 +180,15 @@ class StatsViewModel(private val repository: ExpenseRepository) : ViewModel() {
             val dailyExpense = expList.filter {
                 Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() == targetDate && !it.isIncome
             }.sumOf { it.amount }
-            if (dailyExpense <= 0.0) {
-                noSpendCount++
-            }
+            if (dailyExpense <= 0.0) noSpendCount++
         }
         noSpendCount
     }.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
+    // ── Helpers ───────────────────────────────────────────────────────────────────
+
     private fun getDailyTotalsForRange(
-        expenses: List<com.example.personalfinanceapp.data.Expense>,
+        expenses: List<Expense>,
         startDate: LocalDate,
         endDate: LocalDate
     ): List<Double> {
@@ -164,7 +196,28 @@ class StatsViewModel(private val repository: ExpenseRepository) : ViewModel() {
         var curr = startDate
         while (!curr.isAfter(endDate)) {
             results.add(expenses.filter {
-                Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() == curr && !it.isIncome
+                Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() == curr
+                        && !it.isIncome
+            }.sumOf { it.amount })
+            curr = curr.plusDays(1)
+        }
+        return results
+    }
+
+    /** Same as [getDailyTotalsForRange] but restricted to a single [category]. */
+    private fun getDailyTotalsForRangeByCategory(
+        expenses: List<Expense>,
+        startDate: LocalDate,
+        endDate: LocalDate,
+        category: String
+    ): List<Double> {
+        val results = mutableListOf<Double>()
+        var curr = startDate
+        while (!curr.isAfter(endDate)) {
+            results.add(expenses.filter {
+                Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() == curr
+                        && !it.isIncome
+                        && it.category == category
             }.sumOf { it.amount })
             curr = curr.plusDays(1)
         }

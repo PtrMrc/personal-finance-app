@@ -265,7 +265,14 @@ fun MainApp(settingsManager: SettingsManager) {
                     viewModel = sharedHomeViewModel,
                     onSeeAllClick = { navController.navigate(Screen.History.route) },
                     onBudgetSetupClick = { navController.navigate(Screen.BudgetSetup.route) },
-                    onSettingsClick = { navController.navigate("settings") }
+                    onSettingsClick = { navController.navigate("settings") },
+                    onStatsClick = {
+                        navController.navigate(Screen.Stats.route) {
+                            popUpTo(Screen.Home.route) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 )
             }
             composable(Screen.Stats.route) {
@@ -274,7 +281,7 @@ fun MainApp(settingsManager: SettingsManager) {
                     factory = object : ViewModelProvider.Factory {
                         @Suppress("UNCHECKED_CAST")
                         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                            StatsViewModel(repo) as T
+                            StatsViewModel(repo, budgetRepo) as T
                     }
                 )
                 StatsScreen(viewModel = statsViewModel)

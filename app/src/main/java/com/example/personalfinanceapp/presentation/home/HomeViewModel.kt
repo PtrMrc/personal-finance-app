@@ -18,6 +18,8 @@ import com.example.personalfinanceapp.ml.AdaptiveEnsembleModel
 import com.example.personalfinanceapp.ml.EnsemblePrediction
 import com.example.personalfinanceapp.ml.EnsembleStats
 import com.example.personalfinanceapp.ml.ExpenseClassifier
+import com.example.personalfinanceapp.ml.MLMath
+import com.example.personalfinanceapp.ml.PredictionResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +30,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import java.time.Instant
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.ZoneId
 import java.util.Calendar
 
 data class BudgetProgress(
@@ -36,18 +42,10 @@ data class BudgetProgress(
     val spent: Double
 ) {
     val percentage = if (limit > 0) spent / limit else 0.0
-    val isWarning = percentage in 0.8..<1.0 // 80% to 99%
-    val isExceeded = percentage >= 1.0 // 100%+
+    val isWarning = percentage in 0.8..<1.0
+    val isExceeded = percentage >= 1.0
 }
 
-/**
- * Represents a spending anomaly for a single category.
- *
- * @param category          Hungarian category name as stored in the DB.
- * @param currentWeekSpend  Total spend in the current 7-day bucket.
- * @param historicalAverage Mean weekly spend over the previous 8 complete weeks.
- * @param percentageAbove   How much above average as a fraction (e.g. 0.75 = 75 % above).
- */
 data class AnomalyAlert(
     val category: String,
     val currentWeekSpend: Double,
@@ -55,13 +53,8 @@ data class AnomalyAlert(
     val percentageAbove: Double
 )
 
-// Number of 7-day buckets (complete weeks) used to build the baseline
 private const val HISTORY_WEEKS = 8
-
-// Minimum fraction above the average that triggers an alert (0.5 = 50 %)
 private const val ANOMALY_THRESHOLD = 0.5
-
-// Minimum number of individual expenses in the current week before we fire an alert
 private const val MIN_EXPENSES_THIS_WEEK = 2
 
 class HomeViewModel(
@@ -104,21 +97,20 @@ class HomeViewModel(
             } catch (e: Exception) {
                 Log.e("HomeViewModel", "Error getting ensemble stats", e)
             }
-            delay(5000)  // Update every 5 seconds
+            delay(5000)
         }
     }
 
-    // --- BUDGET LOGIC ---
+    // ── Budget progress ───────────────────────────────────────────────────────
+
     val budgetProgress: StateFlow<List<BudgetProgress>> = combine(
         expenseRepository.allExpenses,
         budgetRepository.allBudgets
     ) { expenses, budgets ->
-        // Get current month and year
         val cal = Calendar.getInstance()
         val currentMonth = cal.get(Calendar.MONTH)
         val currentYear = cal.get(Calendar.YEAR)
 
-        // Filter expenses for THIS MONTH only
         val monthlyExpenses = expenses.filter {
             val expCal = Calendar.getInstance().apply { timeInMillis = it.date }
             expCal.get(Calendar.MONTH) == currentMonth &&
@@ -126,74 +118,80 @@ class HomeViewModel(
                     !it.isIncome
         }
 
-        // Sum by category
         val spentByCategory = monthlyExpenses
             .groupBy { it.category }
             .mapValues { entry -> entry.value.sumOf { it.amount } }
 
-        // Map to Progress objects
         budgets.map { budget ->
             val spentAmount = if (budget.category.trim().equals("Összesen", ignoreCase = true)) {
                 monthlyExpenses.sumOf { it.amount }
             } else {
                 spentByCategory[budget.category] ?: 0.0
             }
-
             BudgetProgress(
                 category = budget.category,
                 limit = budget.monthlyLimit,
                 spent = spentAmount
             )
-        }.sortedByDescending { it.percentage } // Put most urgent at the top
+        }.sortedByDescending { it.percentage }
 
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // --- SPENDING ANOMALY DETECTION ---
+    // ── Spending forecast ─────────────────────────────────────────────────────
 
     /**
-     * Emits a list of [AnomalyAlert]s whenever the weekly spend data changes.
-     *
-     * Algorithm:
-     *  1. Determine the current week bucket  = now / 604_800_000
-     *  2. For each category, split rows into "current week" vs. "history" (buckets
-     *     [currentWeek-HISTORY_WEEKS .. currentWeek-1]).
-     *  3. Compute the historical average over however many of those weeks have data
-     *     (weeks with zero spend have no row, so we normalise over HISTORY_WEEKS to
-     *     keep the average honest — a week with no spend still counts as 0).
-     *  4. Only raise an alert when:
-     *     - historicalAverage > 0  (no baseline → no alert)
-     *     - currentWeekSpend > historicalAverage * (1 + ANOMALY_THRESHOLD)
-     *     - current-week expenseCount >= MIN_EXPENSES_THIS_WEEK
+     * Month-end spending forecast with historical blending.
+     * Blends the last 3 months + same month last year as a baseline, weighted
+     * against the current month's cleaned rate using confidence as the interpolation.
      */
+    val spendingForecast: StateFlow<PredictionResult?> = expenseRepository.allExpenses
+        .map { expList ->
+            val today = LocalDate.now()
+            val daysInMonth = YearMonth.from(today).lengthOfMonth()
+            val startOfMonth = today.withDayOfMonth(1)
+            val monthToDateTotals = getDailyTotalsForRange(expList, startOfMonth, today)
+
+            if (monthToDateTotals.isNotEmpty()) {
+                val currentYearMonth = YearMonth.from(today)
+                val historicalRate = MLMath.computeHistoricalDailyRate(expList, today, currentYearMonth)
+                val categories = expList.filter { !it.isIncome }.map { it.category }.distinct()
+                val categoryDailyData = categories.associateWith { cat ->
+                    getDailyTotalsForRangeByCategory(expList, startOfMonth, today, cat)
+                }
+                val result = MLMath.calculateSmartForecast(monthToDateTotals, daysInMonth, historicalRate, categoryDailyData)
+                // Hide forecast if algorithm returned the "not enough data" sentinel
+                if (result.forecastedTotal == 0.0 && result.daysOfData < 3) null else result
+            } else {
+                null
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /** Budget limits as a simple map for use in the forecast card. */
+    val budgetLimits: StateFlow<Map<String, Double>> = budgetProgress
+        .map { list -> list.associate { it.category to it.limit } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    // ── Spending anomaly detection ────────────────────────────────────────────
+
     val anomalyAlerts: StateFlow<List<AnomalyAlert>> =
         expenseRepository.weeklySpendByCategory
             .map { rows ->
                 val currentWeek = System.currentTimeMillis() / 604_800_000L
-                val historyStart = currentWeek - HISTORY_WEEKS  // inclusive lower bound
+                val historyStart = currentWeek - HISTORY_WEEKS
 
-                // Group all DB rows by category
                 val byCategory = rows.groupBy { it.category }
-
                 val alerts = mutableListOf<AnomalyAlert>()
 
                 for ((category, weekRows) in byCategory) {
-                    // Row for the current week (may be absent if no spend yet)
                     val currentRow = weekRows.firstOrNull { it.weekNumber == currentWeek }
-
-                    // Only evaluate if there are at least MIN_EXPENSES_THIS_WEEK this week
                     if ((currentRow?.expenseCount ?: 0) < MIN_EXPENSES_THIS_WEEK) continue
 
                     val currentSpend = currentRow?.total ?: 0.0
-
-                    // Rows that fall within the historical window (exclude current week)
                     val historicRows = weekRows.filter { it.weekNumber in historyStart until currentWeek }
-
-                    // Sum up all historical spend; divide by HISTORY_WEEKS so weeks with
-                    // zero spend (= no row) still drag the average down correctly.
                     val historicalTotal = historicRows.sumOf { it.total }
                     val historicalAverage = historicalTotal / HISTORY_WEEKS
 
-                    // No usable baseline — skip
                     if (historicalAverage <= 0.0) continue
 
                     val fractionAbove = (currentSpend - historicalAverage) / historicalAverage
@@ -207,10 +205,11 @@ class HomeViewModel(
                     }
                 }
 
-                // Most severe anomaly first
                 alerts.sortedByDescending { it.percentageAbove }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // ── Budget CRUD ───────────────────────────────────────────────────────────
 
     fun setBudget(category: String, limit: Double) {
         viewModelScope.launch {
@@ -220,23 +219,17 @@ class HomeViewModel(
 
     fun deleteBudget(category: String) {
         viewModelScope.launch {
-            // Need the full object to delete
             budgetRepository.deleteBudget(Budget(category, 0.0))
         }
     }
 
-    /**
-     * Predict category using adaptive ensemble
-     *
-     * @param title Expense title
-     * @return Ensemble prediction with both model predictions
-     */
+    // ── ML prediction ─────────────────────────────────────────────────────────
+
     suspend fun predictCategoryEnsemble(title: String): EnsemblePrediction {
         return try {
             ensembleModel.predict(title)
         } catch (e: Exception) {
             Log.e("HomeViewModel", "Failed to predict category", e)
-            // Return fallback prediction
             EnsemblePrediction(
                 finalCategory = "Other",
                 confidence = 0.3,
@@ -248,13 +241,6 @@ class HomeViewModel(
         }
     }
 
-    /**
-     * Record user's category choice and learn from it
-     *
-     * @param title Expense title
-     * @param ensemblePrediction What the ensemble predicted
-     * @param userChoice What the user actually chose
-     */
     fun recordCategoryChoice(
         title: String,
         ensemblePrediction: EnsemblePrediction,
@@ -262,15 +248,11 @@ class HomeViewModel(
     ) {
         viewModelScope.launch {
             try {
-                // Train Naive Bayes and adjust ensemble weights
                 ensembleModel.recordUserChoice(title, ensemblePrediction, userChoice)
-
-                // Record whether the AI suggestion was accepted or corrected
                 correctionRepository.recordPrediction(
                     aiSuggestedCategory = ensemblePrediction.finalCategory,
                     userChosenCategory = userChoice
                 )
-
                 Log.d("HomeViewModel", "Recorded user choice. " +
                         "AI=${ensemblePrediction.finalCategory}, User=$userChoice")
             } catch (e: Exception) {
@@ -279,7 +261,8 @@ class HomeViewModel(
         }
     }
 
-    // Expense operations with error handling
+    // ── Expense / recurring CRUD ──────────────────────────────────────────────
+
     fun addExpense(expense: Expense) {
         viewModelScope.launch {
             expenseRepository.addExpense(expense)
@@ -287,9 +270,7 @@ class HomeViewModel(
                     _errorMessage.value = "Hiba a kiadás hozzáadásakor: ${e.message}"
                     Log.e("HomeViewModel", "Failed to add expense", e)
                 }
-                .onSuccess {
-                    _errorMessage.value = null
-                }
+                .onSuccess { _errorMessage.value = null }
         }
     }
 
@@ -300,9 +281,7 @@ class HomeViewModel(
                     _errorMessage.value = "Hiba a kiadás törlésekor: ${e.message}"
                     Log.e("HomeViewModel", "Failed to delete expense", e)
                 }
-                .onSuccess {
-                    _errorMessage.value = null
-                }
+                .onSuccess { _errorMessage.value = null }
         }
     }
 
@@ -313,9 +292,7 @@ class HomeViewModel(
                     _errorMessage.value = "Hiba a kiadás frissítésekor: ${e.message}"
                     Log.e("HomeViewModel", "Failed to update expense", e)
                 }
-                .onSuccess {
-                    _errorMessage.value = null
-                }
+                .onSuccess { _errorMessage.value = null }
         }
     }
 
@@ -326,9 +303,7 @@ class HomeViewModel(
                     _errorMessage.value = "Hiba az ismétlődő tétel hozzáadásakor: ${e.message}"
                     Log.e("HomeViewModel", "Failed to add recurring item", e)
                 }
-                .onSuccess {
-                    _errorMessage.value = null
-                }
+                .onSuccess { _errorMessage.value = null }
         }
     }
 
@@ -339,13 +314,49 @@ class HomeViewModel(
                     _errorMessage.value = "Hiba az ismétlődő tétel törlésekor: ${e.message}"
                     Log.e("HomeViewModel", "Failed to delete recurring item", e)
                 }
-                .onSuccess {
-                    _errorMessage.value = null
-                }
+                .onSuccess { _errorMessage.value = null }
         }
     }
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private fun getDailyTotalsForRange(
+        expenses: List<Expense>,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<Double> {
+        val results = mutableListOf<Double>()
+        var curr = startDate
+        while (!curr.isAfter(endDate)) {
+            results.add(expenses.filter {
+                Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() == curr
+                        && !it.isIncome
+            }.sumOf { it.amount })
+            curr = curr.plusDays(1)
+        }
+        return results
+    }
+
+    private fun getDailyTotalsForRangeByCategory(
+        expenses: List<Expense>,
+        startDate: LocalDate,
+        endDate: LocalDate,
+        category: String
+    ): List<Double> {
+        val results = mutableListOf<Double>()
+        var curr = startDate
+        while (!curr.isAfter(endDate)) {
+            results.add(expenses.filter {
+                Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() == curr
+                        && !it.isIncome
+                        && it.category == category
+            }.sumOf { it.amount })
+            curr = curr.plusDays(1)
+        }
+        return results
     }
 }

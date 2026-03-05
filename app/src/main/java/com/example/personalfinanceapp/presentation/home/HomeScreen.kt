@@ -34,6 +34,7 @@ import com.example.personalfinanceapp.presentation.components.ScreenHeader
 import com.example.personalfinanceapp.presentation.home.components.ExpenseDialog
 import com.example.personalfinanceapp.data.Expense
 import com.example.personalfinanceapp.presentation.home.components.BudgetProgressSection
+import com.example.personalfinanceapp.presentation.home.components.ForecastSummaryCard
 import com.example.personalfinanceapp.utils.extractAmount
 import com.example.personalfinanceapp.utils.CategoryMapper
 import com.example.personalfinanceapp.utils.formatAmount
@@ -43,9 +44,9 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 // Green palette for the balance card
-private val CardGreenDark  = Color(0xFF071A24)   // deep teal-slate (top-left of gradient)
-private val CardGreenLight = Color(0xFF0E3347)   // mid dark teal (bottom-right of gradient)
-private val CardRippleColor   = Color(0xFF1FA884)  // teal ripple lines
+private val CardGreenDark  = Color(0xFF071A24)
+private val CardGreenLight = Color(0xFF0E3347)
+private val CardRippleColor   = Color(0xFF1FA884)
 
 // Amber palette for anomaly cards — warm but not alarming
 private val AnomalyAmber     = Color(0xFFF59E0B)
@@ -57,7 +58,10 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onSeeAllClick: () -> Unit,
     onBudgetSetupClick: () -> Unit,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    // Navigate to Stats tab to see the full forecast breakdown.
+    // Pass the lambda from your NavGraph; e.g. { navController.navigate(Screen.Stats.route) }
+    onStatsClick: () -> Unit = {}
 ) {
     val errorMessage by viewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -98,7 +102,10 @@ fun HomeScreen(
     val budgets by viewModel.budgetProgress.collectAsState()
     val anomalies by viewModel.anomalyAlerts.collectAsState()
 
-    // Track which anomaly categories the user has dismissed this session
+    // Forecast data
+    val spendingForecast by viewModel.spendingForecast.collectAsState()
+    val budgetLimits by viewModel.budgetLimits.collectAsState()
+
     val dismissedCategories = remember { mutableStateSetOf<String>() }
     val visibleAnomalies = anomalies.filter { it.category !in dismissedCategories }
 
@@ -154,6 +161,7 @@ fun HomeScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // ── Balance card ──────────────────────────────────────────────
                 item {
                     AnimatedVisibility(
                         visible = visible,
@@ -167,6 +175,26 @@ fun HomeScreen(
                     }
                 }
 
+                // ── Compact forecast card ─────────────────────────────────────
+                // Shown once there are at least a few days of data (confidence > 0)
+                val monthlyExpenseCount = expenseList.count { !it.isIncome }
+                if (spendingForecast != null && monthlyExpenseCount > 3) {
+                    item {
+                        AnimatedVisibility(
+                            visible = visible,
+                            enter = fadeIn(animationSpec = tween(600, delayMillis = 160)) +
+                                    slideInVertically(animationSpec = tween(600, delayMillis = 160))
+                        ) {
+                            ForecastSummaryCard(
+                                prediction = spendingForecast!!,
+                                budgetLimits = budgetLimits,
+                                onViewDetails = onStatsClick
+                            )
+                        }
+                    }
+                }
+
+                // ── Budget progress ───────────────────────────────────────────
                 if (budgets.isNotEmpty()) {
                     item {
                         AnimatedVisibility(
@@ -179,7 +207,7 @@ fun HomeScreen(
                     }
                 }
 
-                // Anomaly alert cards — one per category, each individually dismissible
+                // ── Anomaly alert cards ───────────────────────────────────────
                 if (visibleAnomalies.isNotEmpty()) {
                     items(visibleAnomalies, key = { "anomaly_${it.category}" }) { alert ->
                         AnimatedVisibility(
@@ -197,6 +225,7 @@ fun HomeScreen(
                     }
                 }
 
+                // ── Quick stats ───────────────────────────────────────────────
                 item {
                     AnimatedVisibility(
                         visible = visible,
@@ -211,6 +240,7 @@ fun HomeScreen(
                     }
                 }
 
+                // ── Transactions header ───────────────────────────────────────
                 item {
                     AnimatedVisibility(
                         visible = visible,
@@ -256,6 +286,7 @@ fun HomeScreen(
                     }
                 }
 
+                // ── Transaction rows ──────────────────────────────────────────
                 items(recentExpenses, key = { it.id }) { expense ->
                     val dismissScope = rememberCoroutineScope()
                     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -384,10 +415,6 @@ fun HomeScreen(
 // Anomaly alert card
 // ---------------------------------------------------------------------------
 
-/**
- * A dismissible amber warning card shown when spending in [alert.category]
- * is more than 50 % above the user's historical weekly average.
- */
 @Composable
 fun AnomalyAlertCard(
     alert: AnomalyAlert,
@@ -828,9 +855,7 @@ fun EmptyStateCard() {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 32.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(
@@ -924,9 +949,7 @@ fun ModernInputArea(
             shape = CircleShape,
             contentPadding = PaddingValues(0.dp),
             modifier = Modifier.size(50.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            ),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
         ) {
             Icon(
@@ -985,28 +1008,15 @@ fun ModernDeleteDialog(
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text(
-                    "Törlés",
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onError
-                )
+                Text("Törlés", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onError)
             }
         },
         dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    "Mégse",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium
-                )
+            TextButton(onClick = onDismiss, shape = RoundedCornerShape(12.dp)) {
+                Text("Mégse", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
             }
         }
     )
