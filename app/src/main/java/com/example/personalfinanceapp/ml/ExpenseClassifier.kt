@@ -42,7 +42,7 @@ class ExpenseClassifier(private val context: Context) : TFLiteClassifierInterfac
     }
 
     private fun loadModel() {
-        val fileDescriptor = context.assets.openFd("expense_classifier_OLD.tflite")
+        val fileDescriptor = context.assets.openFd("expense_classifier.tflite")
         val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
         val fileChannel = inputStream.channel
         val startOffset = fileDescriptor.startOffset
@@ -52,7 +52,7 @@ class ExpenseClassifier(private val context: Context) : TFLiteClassifierInterfac
     }
 
     private fun loadVocab() {
-        val jsonString = context.assets.open("vocab_OLD.json")
+        val jsonString = context.assets.open("vocab.json")
             .bufferedReader(Charset.forName("UTF-8"))
             .use { it.readText() }
 
