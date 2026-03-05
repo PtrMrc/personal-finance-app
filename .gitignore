@@ -68,3 +68,6 @@ captures/
 
 # Google Services (Sensitive data - remove this line if you WANT to commit it)
 google-services.json
+
+src/main/assets/*_OLD.*
+src/main/ic_launcher-playstore.png
