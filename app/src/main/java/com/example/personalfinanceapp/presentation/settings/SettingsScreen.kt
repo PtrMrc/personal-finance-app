@@ -114,6 +114,10 @@ fun SettingsScreen(
                         // 3-way segmented button: Világos / Sötét / OLED
                         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                             SegmentedButton(
+                                colors = SegmentedButtonDefaults.colors(
+                                    activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    activeContentColor   = MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
                                 selected = currentTheme == AppTheme.LIGHT,
                                 onClick = { scope.launch { settingsManager.setTheme(AppTheme.LIGHT) } },
                                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
@@ -128,6 +132,10 @@ fun SettingsScreen(
                             ) { Text("Világos") }
 
                             SegmentedButton(
+                                colors = SegmentedButtonDefaults.colors(
+                                    activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    activeContentColor   = MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
                                 selected = currentTheme == AppTheme.SIMPLE,
                                 onClick = { scope.launch { settingsManager.setTheme(AppTheme.SIMPLE) } },
                                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
@@ -142,6 +150,10 @@ fun SettingsScreen(
                             ) { Text("Simple") }
 
                             SegmentedButton(
+                                colors = SegmentedButtonDefaults.colors(
+                                    activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    activeContentColor   = MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
                                 selected = currentTheme == AppTheme.OLED,
                                 onClick = { scope.launch { settingsManager.setTheme(AppTheme.OLED) } },
                                 shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),

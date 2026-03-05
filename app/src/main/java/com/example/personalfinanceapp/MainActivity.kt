@@ -212,6 +212,7 @@ private fun MinimalNavBar(
 
 @Composable
 fun MainApp(settingsManager: SettingsManager) {
+    val appTheme by settingsManager.themeFlow.collectAsState(initial = com.example.personalfinanceapp.data.AppTheme.SIMPLE)
     val context = LocalContext.current
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -272,7 +273,8 @@ fun MainApp(settingsManager: SettingsManager) {
                             launchSingleTop = true
                             restoreState = true
                         }
-                    }
+                    },
+                    appTheme = appTheme
                 )
             }
             composable(Screen.Stats.route) {

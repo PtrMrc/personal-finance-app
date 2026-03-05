@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import com.example.personalfinanceapp.data.AppTheme
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,10 +44,18 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-// Green palette for the balance card
-private val CardGreenDark  = Color(0xFF071A24)
-private val CardGreenLight = Color(0xFF0E3347)
-private val CardRippleColor   = Color(0xFF1FA884)
+// Per-theme balance card base gradients
+private val CardBaseSimple1 = Color(0xFF0D2A3D)
+private val CardBaseSimple2 = Color(0xFF0A1E2E)
+private val CardBaseOled1   = Color(0xFF000000)
+private val CardBaseOled2   = Color(0xFF050D15)
+private val CardBaseLight1  = Color(0xFF1E40AF)
+private val CardBaseLight2  = Color(0xFF1E3A8A)
+
+// Blob accent colors
+private val BlobBlue   = Color(0xFF3B82F6)
+private val BlobGreen  = Color(0xFF10B981)
+private val BlobIndigo = Color(0xFF1D4ED8)
 
 // Amber palette for anomaly cards — warm but not alarming
 private val AnomalyAmber     = Color(0xFFF59E0B)
@@ -59,9 +68,8 @@ fun HomeScreen(
     onSeeAllClick: () -> Unit,
     onBudgetSetupClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    // Navigate to Stats tab to see the full forecast breakdown.
-    // Pass the lambda from your NavGraph; e.g. { navController.navigate(Screen.Stats.route) }
-    onStatsClick: () -> Unit = {}
+    onStatsClick: () -> Unit = {},
+    appTheme: AppTheme = AppTheme.SIMPLE
 ) {
     val errorMessage by viewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -170,7 +178,8 @@ fun HomeScreen(
                     ) {
                         EnhancedBalanceCard(
                             total = total ?: 0.0,
-                            categoryBreakdown = categoryBreakdown
+                            categoryBreakdown = categoryBreakdown,
+                            appTheme = appTheme
                         )
                     }
                 }
@@ -517,7 +526,8 @@ fun ModernHeader(
 @Composable
 fun EnhancedBalanceCard(
     total: Double,
-    categoryBreakdown: Map<String, Double>
+    categoryBreakdown: Map<String, Double>,
+    appTheme: AppTheme = AppTheme.SIMPLE
 ) {
     var animationTarget by remember { mutableFloatStateOf(0f) }
 
@@ -531,22 +541,21 @@ fun EnhancedBalanceCard(
         label = "rolling_balance"
     )
 
-    val cardGradient = Brush.linearGradient(
-        colorStops = arrayOf(
-            0.0f to CardGreenDark,
-            1.0f to CardGreenLight
-        ),
-        start = Offset(0f, 0f),
-        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-    )
+    val (base1, base2) = when (appTheme) {
+        AppTheme.OLED  -> CardBaseOled1  to CardBaseOled2
+        AppTheme.LIGHT -> CardBaseLight1 to CardBaseLight2
+        else           -> CardBaseSimple1 to CardBaseSimple2
+    }
+    val blobAlpha = if (appTheme == AppTheme.OLED) 0.22f else 0.45f
+    val shadowColor = if (appTheme == AppTheme.LIGHT) CardBaseLight1 else BlobBlue
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 8.dp,
+                elevation = if (appTheme == AppTheme.OLED) 6.dp else 14.dp,
                 shape = RoundedCornerShape(24.dp),
-                spotColor = CardGreenDark.copy(alpha = 0.25f)
+                spotColor = shadowColor.copy(alpha = if (appTheme == AppTheme.OLED) 0.12f else 0.28f)
             ),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = RoundedCornerShape(24.dp)
@@ -554,31 +563,46 @@ fun EnhancedBalanceCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(brush = cardGradient)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(base1, base2),
+                        start = Offset(0f, 0f),
+                        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                    )
+                )
         ) {
             Canvas(modifier = Modifier.matchParentSize()) {
-                val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round)
-                val ox = size.width
-                val oy = size.height
-                val radii = listOf(
-                    size.width * 0.38f,
-                    size.width * 0.56f,
-                    size.width * 0.74f,
-                    size.width * 0.92f,
-                    size.width * 1.10f
-                )
-                val alphas = listOf(0.27f, 0.21f, 0.16f, 0.09f, 0.04f)
-                radii.zip(alphas).forEach { (r, alpha) ->
-                    drawArc(
-                        color = CardRippleColor.copy(alpha = alpha),
-                        startAngle = 160f,
-                        sweepAngle = 110f,
-                        useCenter = false,
-                        topLeft = Offset(ox - r, oy - r),
-                        size = Size(r * 2f, r * 2f),
-                        style = stroke
+                fun drawBlob(cx: Float, cy: Float, r: Float, color: Color, alpha: Float) {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                color.copy(alpha = alpha),
+                                color.copy(alpha = alpha * 0.45f),
+                                Color.Transparent
+                            ),
+                            center = Offset(cx, cy),
+                            radius = r
+                        ),
+                        radius = r,
+                        center = Offset(cx, cy)
                     )
                 }
+                // Large primary blob — top-right
+                drawBlob(size.width * 0.82f, size.height * 0.10f, size.width * 0.55f, BlobBlue,   blobAlpha)
+                // Medium secondary blob — bottom-left
+                drawBlob(size.width * 0.08f, size.height * 0.92f, size.width * 0.40f, BlobGreen,  blobAlpha * 0.85f)
+                // Small accent blob — centre-right
+                drawBlob(size.width * 0.62f, size.height * 0.68f, size.width * 0.28f, BlobIndigo, blobAlpha * 0.70f)
+                // Corner vignette to anchor text area
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color.Black.copy(alpha = 0.18f), Color.Transparent),
+                        center = Offset(0f, 0f),
+                        radius = size.width * 0.32f
+                    ),
+                    radius = size.width * 0.32f,
+                    center = Offset(0f, 0f)
+                )
             }
 
             Column(

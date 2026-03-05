@@ -388,7 +388,7 @@ fun GlowingTrendChart(
         return
     }
 
-    val positiveColor = lineColor
+    val tipColor = MaterialTheme.colorScheme.tertiary
     val negativeColor = Color(0xFFEF4444)
 
     Canvas(modifier = modifier) {
@@ -428,7 +428,7 @@ fun GlowingTrendChart(
             close()
         }
         drawPath(path = positiveFill, brush = Brush.verticalGradient(
-            colors = listOf(positiveColor.copy(alpha = 0.30f), positiveColor.copy(alpha = 0f)),
+            colors = listOf(lineColor.copy(alpha = 0.30f), lineColor.copy(alpha = 0f)),
             startY = 0f, endY = zeroY))
 
         val negativeFill = Path().apply {
@@ -452,7 +452,7 @@ fun GlowingTrendChart(
             x += dashWidth + gapWidth
         }
 
-        drawPath(path = linePath, color = positiveColor,
+        drawPath(path = linePath, color = lineColor,
             style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
 
         if (data.size > 1) {
@@ -472,7 +472,7 @@ fun GlowingTrendChart(
 
         val lastX = xOf(data.size - 1)
         val lastY = yOf(data.last())
-        val dotColor = if (data.last() >= 0) positiveColor else negativeColor
+        val dotColor = if (data.last() >= 0) tipColor else negativeColor
         drawCircle(color = dotColor.copy(alpha = 0.22f), radius = 10.dp.toPx(),
             center = androidx.compose.ui.geometry.Offset(lastX, lastY))
         drawCircle(color = dotColor, radius = 4.5.dp.toPx(),
