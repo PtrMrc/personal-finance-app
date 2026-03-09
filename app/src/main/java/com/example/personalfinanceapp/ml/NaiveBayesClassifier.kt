@@ -27,8 +27,8 @@ class NaiveBayesClassifier(
     }
 
     /**
-     * Train the model with a new expense
-     * Tokenizes the title and increments word counts for the given category
+     * Train the model with a new expense.
+     * Tokenizes the title and increments word counts for the given category.
      */
     suspend fun train(title: String, category: String) = withContext(Dispatchers.IO) {
         try {
@@ -54,7 +54,8 @@ class NaiveBayesClassifier(
     }
 
     /**
-     * Predict category probabilities for a given title
+     * Predict category probabilities for a given title.
+     * Returns a sorted list — highest probability category first.
      */
     suspend fun predict(title: String): List<CategoryPrediction> = withContext(Dispatchers.IO) {
         try {
@@ -111,6 +112,10 @@ class NaiveBayesClassifier(
         }
     }
 
+    /**
+     * Calculates log P(category | words) for a single category.
+     * Uses Bayes theorem: P(category | words) = P(words | category) * P(category) / P(words).
+     */
     private suspend fun calculateLogProbability(
         words: List<String>,
         category: String,
@@ -130,6 +135,9 @@ class NaiveBayesClassifier(
         return logPrior + logLikelihood
     }
 
+    /**
+     * Converts log probabilities to normalized real probabilities (0.0–1.0), sorts by descending order.
+     */
     private fun normalizeProbabilities(predictions: List<CategoryPrediction>): List<CategoryPrediction> {
         if (predictions.isEmpty()) return emptyList()
         val maxLogProb = predictions.maxOf { it.probability }
@@ -143,6 +151,9 @@ class NaiveBayesClassifier(
         }.sortedByDescending { it.probability }
     }
 
+    /**
+     * Tokenizes raw text into a list of meaningful words.
+     */
     private fun tokenize(text: String): List<String> {
         return text
             .lowercase()
@@ -152,6 +163,9 @@ class NaiveBayesClassifier(
             .distinct()
     }
 
+    /**
+     * Returns current model statistics for UI display (Learning screen).
+     */
     suspend fun getModelStats(): NaiveBayesStats = withContext(Dispatchers.IO) {
         val vocabularySize = wordCategoryCountDao.getVocabularySize()
         val categories = wordCategoryCountDao.getAllCategories()
