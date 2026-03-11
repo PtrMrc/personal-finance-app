@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Personal Finance App</string>
+    <string name="app_name">Walt</string>
 
     <!-- Navigation -->
     <string name="nav_home">Főoldal</string>

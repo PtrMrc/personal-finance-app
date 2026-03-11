@@ -206,6 +206,8 @@ class MockWordCategoryCountDao : WordCategoryCountDao {
 
     override suspend fun getTopWordsForCategory(category: String, limit: Int) = emptyList<WordCategoryCount>()
 
+    override suspend fun getTopWords(limit: Int): List<WordCategoryCount> = emptyList()
+
     // Helper methods for testing
     fun hasWord(word: String) = wordCounts.keys.any { it.first == word }
     fun getCategoryForWord(word: String) = wordCounts.keys.firstOrNull { it.first == word }?.second

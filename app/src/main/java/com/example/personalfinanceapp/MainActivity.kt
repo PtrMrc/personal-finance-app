@@ -130,6 +130,7 @@ private fun MinimalNavBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = 8.dp)
                 .padding(top = 10.dp, bottom = 18.dp),
             horizontalArrangement = Arrangement.SpaceEvenly

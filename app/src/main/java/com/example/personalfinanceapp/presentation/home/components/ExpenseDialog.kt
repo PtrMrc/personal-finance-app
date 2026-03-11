@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -107,6 +109,7 @@ fun ExpenseDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier
             .padding(28.dp)
+            .imePadding()
             .clip(RoundedCornerShape(28.dp)),
         properties = DialogProperties(usePlatformDefaultWidth = false),
         content = {
@@ -117,7 +120,8 @@ fun ExpenseDialog(
                 Column(
                     modifier = Modifier
                         .padding(24.dp)
-                        .verticalScroll(rememberScrollState()),
+                        .verticalScroll(rememberScrollState())
+                        .navigationBarsPadding(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(

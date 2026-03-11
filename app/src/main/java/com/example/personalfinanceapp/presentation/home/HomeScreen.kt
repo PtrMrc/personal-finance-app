@@ -204,15 +204,13 @@ fun HomeScreen(
                 }
 
                 // ── Budget progress ───────────────────────────────────────────
-                if (budgets.isNotEmpty()) {
-                    item {
-                        AnimatedVisibility(
-                            visible = visible,
-                            enter = fadeIn(animationSpec = tween(600, delayMillis = 250)) +
-                                    slideInVertically(animationSpec = tween(600, delayMillis = 250))
-                        ) {
-                            BudgetProgressSection(budgets)
-                        }
+                item {
+                    AnimatedVisibility(
+                        visible = visible,
+                        enter = fadeIn(animationSpec = tween(600, delayMillis = 250)) +
+                                slideInVertically(animationSpec = tween(600, delayMillis = 250))
+                    ) {
+                        BudgetProgressSection(budgets)
                     }
                 }
 
@@ -506,7 +504,7 @@ fun ModernHeader(
     ) {
         IconButton(onClick = onBudgetClick) {
             Icon(
-                Icons.Default.AccountBalance,
+                Icons.Default.Wallet,
                 contentDescription = "Költségvetés",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(26.dp)

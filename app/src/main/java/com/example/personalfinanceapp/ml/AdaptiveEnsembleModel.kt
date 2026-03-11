@@ -268,10 +268,9 @@ class AdaptiveEnsembleModel(
      * Update model performance statistics
      */
     private suspend fun updateModelPerformance(modelName: String, wasCorrect: Boolean) {
+        modelPerformanceDao.incrementTotal(modelName)
         if (wasCorrect) {
             modelPerformanceDao.incrementCorrect(modelName)
-        } else {
-            modelPerformanceDao.incrementTotal(modelName)
         }
     }
 
