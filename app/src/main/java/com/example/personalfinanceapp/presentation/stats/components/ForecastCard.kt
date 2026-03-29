@@ -37,9 +37,9 @@ private val BudgetExceeded   = Color(0xFFEF4444)   // red
 private fun confidenceInfo(confidence: Double, daysOfData: Int, usedHistory: Boolean): Pair<String, Color> {
     val historySuffix = if (usedHistory) " · historikus adat" else ""
     return when {
-        confidence < 0.25 -> "Alacsony biztonság – $daysOfData nap$historySuffix" to ConfidenceLow
-        confidence < 0.60 -> "Közepes biztonság – $daysOfData nap$historySuffix" to ConfidenceMid
-        else              -> "Magas biztonság – $daysOfData nap$historySuffix" to ConfidenceHigh
+        confidence < 0.25 -> "Alacsony pontosság – $daysOfData nap$historySuffix" to ConfidenceLow
+        confidence < 0.60 -> "Közepes pontosság – $daysOfData nap$historySuffix" to ConfidenceMid
+        else              -> "Magas pontosság – $daysOfData nap$historySuffix" to ConfidenceHigh
     }
 }
 

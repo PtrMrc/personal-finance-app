@@ -36,16 +36,25 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.util.Calendar
 
+/**
+ * UI model for a single budget category's monthly progress.
+ * Computed properties (percentage, isWarning, isExceeded) derive automatically
+ * from the primary data so they never go stale.
+ */
 data class BudgetProgress(
     val category: String,
     val limit: Double,
     val spent: Double
 ) {
     val percentage = if (limit > 0) spent / limit else 0.0
-    val isWarning = percentage in 0.8..<1.0
-    val isExceeded = percentage >= 1.0
+    val isWarning = percentage in 0.8..<1.0   // 80–99 %: amber warning
+    val isExceeded = percentage >= 1.0          // 100 %+: red exceeded
 }
 
+/**
+ * A spending anomaly for one category in the current epoch-week.
+ * Shown as a warning card on the Home screen.
+ */
 data class AnomalyAlert(
     val category: String,
     val currentWeekSpend: Double,
@@ -54,9 +63,18 @@ data class AnomalyAlert(
 )
 
 private const val HISTORY_WEEKS = 8
-private const val ANOMALY_THRESHOLD = 0.5
-private const val MIN_EXPENSES_THIS_WEEK = 2
+private const val ANOMALY_THRESHOLD = 0.5      // 50 % above historical average
+private const val MIN_EXPENSES_THIS_WEEK = 2   // Avoid false alerts early in the week
 
+/**
+ * Shared ViewModel for Home, Recurring, Learning, and BudgetSetup screens.
+ *
+ * Owns all repositories and the ML ensemble. Exposes reactive StateFlows so
+ * the UI never needs to manually refresh — Room changes propagate automatically
+ * through the Flow pipeline.
+ *
+ * Uses manual ViewModelProvider.Factory injection (no Hilt/Dagger).
+ */
 class HomeViewModel(
     application: Application,
     private val budgetRepository: BudgetRepository
@@ -66,7 +84,6 @@ class HomeViewModel(
     private val expenseRepository = ExpenseRepository(database.expenseDao())
     private val recurringRepository = RecurringRepository(database.recurringDao())
     private val naiveBayesRepository = NaiveBayesRepository(database.wordCategoryCountDao())
-
     private val tfliteClassifier = ExpenseClassifier(application)
 
     private val ensembleModel = AdaptiveEnsembleModel(
@@ -79,21 +96,25 @@ class HomeViewModel(
         database.categoryCorrectionStatDao()
     )
 
-    val correctionStats: Flow<List<CategoryCorrectionStat>> = correctionRepository.allStats
+    // ── Public data streams ───────────────────────────────────────────────────
 
+    val correctionStats: Flow<List<CategoryCorrectionStat>> = correctionRepository.allStats
     val allExpenses: Flow<List<Expense>> = expenseRepository.allExpenses
     val totalSpending: Flow<Double?> = expenseRepository.totalSpending
-    val categoryBreakdown = expenseRepository.categoryBreakdown
     val allRecurringItems: Flow<List<RecurringItem>> = recurringRepository.allRecurringItems
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
+    /**
+     * Polls ensemble statistics every 5 seconds.
+     * A Room Flow on ModelPerformance would be cleaner, but the DAO does not
+     * expose one — polling is a pragmatic workaround.
+     */
     val ensembleStats: Flow<EnsembleStats> = flow {
         while (true) {
             try {
-                val stats = ensembleModel.getEnsembleStats()
-                emit(stats)
+                emit(ensembleModel.getEnsembleStats())
             } catch (e: Exception) {
                 Log.e("HomeViewModel", "Error getting ensemble stats", e)
             }
@@ -103,6 +124,16 @@ class HomeViewModel(
 
     // ── Budget progress ───────────────────────────────────────────────────────
 
+    /**
+     * Reactively combines the full expense list with all budgets to produce
+     * per-category progress for the current calendar month.
+     *
+     * combine() re-executes the lambda whenever either upstream Flow emits,
+     * so the UI stays in sync without any manual refresh calls.
+     *
+     * The special "Összesen" category sums all monthly expenses instead of
+     * filtering by category name.
+     */
     val budgetProgress: StateFlow<List<BudgetProgress>> = combine(
         expenseRepository.allExpenses,
         budgetRepository.allBudgets
@@ -141,8 +172,13 @@ class HomeViewModel(
 
     /**
      * Month-end spending forecast with historical blending.
+     *
      * Blends the last 3 months + same month last year as a baseline, weighted
-     * against the current month's cleaned rate using confidence as the interpolation.
+     * against the current month's median-cleaned daily rate using confidence
+     * (active days / days in month) as the interpolation parameter.
+     *
+     * Returns null when the algorithm cannot produce a meaningful forecast
+     * (fewer than 3 spending days and no historical data).
      */
     val spendingForecast: StateFlow<PredictionResult?> = expenseRepository.allExpenses
         .map { expList ->
@@ -153,13 +189,16 @@ class HomeViewModel(
 
             if (monthToDateTotals.isNotEmpty()) {
                 val currentYearMonth = YearMonth.from(today)
-                val historicalRate = MLMath.computeHistoricalDailyRate(expList, today, currentYearMonth)
+                val historicalRate = MLMath.computeHistoricalDailyRate(
+                    expList, today, currentYearMonth
+                )
                 val categories = expList.filter { !it.isIncome }.map { it.category }.distinct()
                 val categoryDailyData = categories.associateWith { cat ->
                     getDailyTotalsForRangeByCategory(expList, startOfMonth, today, cat)
                 }
-                val result = MLMath.calculateSmartForecast(monthToDateTotals, daysInMonth, historicalRate, categoryDailyData)
-                // Hide forecast if algorithm returned the "not enough data" sentinel
+                val result = MLMath.calculateSmartForecast(
+                    monthToDateTotals, daysInMonth, historicalRate, categoryDailyData
+                )
                 if (result.forecastedTotal == 0.0 && result.daysOfData < 3) null else result
             } else {
                 null
@@ -167,13 +206,28 @@ class HomeViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    /** Budget limits as a simple map for use in the forecast card. */
+    /** Budget limits as a flat map for use in the forecast card UI. */
     val budgetLimits: StateFlow<Map<String, Double>> = budgetProgress
         .map { list -> list.associate { it.category to it.limit } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     // ── Spending anomaly detection ────────────────────────────────────────────
 
+    /**
+     * Detects unusual spending in the current epoch-week per category.
+     *
+     * Uses epoch-based week numbers (milliseconds / 604_800_000) rather than
+     * calendar weeks. This is a known limitation — blocks may not align with
+     * Monday–Sunday boundaries.
+     *
+     * An alert is raised when:
+     *   currentWeekSpend > historicalAverage * (1 + ANOMALY_THRESHOLD)
+     * with a minimum of MIN_EXPENSES_THIS_WEEK transactions to avoid
+     * false positives early in the week.
+     *
+     * Historical average = sum of the past HISTORY_WEEKS weeks (including
+     * zero-spend weeks) divided by HISTORY_WEEKS — intentionally conservative.
+     */
     val anomalyAlerts: StateFlow<List<AnomalyAlert>> =
         expenseRepository.weeklySpendByCategory
             .map { rows ->
@@ -188,7 +242,9 @@ class HomeViewModel(
                     if ((currentRow?.expenseCount ?: 0) < MIN_EXPENSES_THIS_WEEK) continue
 
                     val currentSpend = currentRow?.total ?: 0.0
-                    val historicRows = weekRows.filter { it.weekNumber in historyStart until currentWeek }
+                    val historicRows = weekRows.filter {
+                        it.weekNumber in historyStart until currentWeek
+                    }
                     val historicalTotal = historicRows.sumOf { it.total }
                     val historicalAverage = historicalTotal / HISTORY_WEEKS
 
@@ -225,13 +281,17 @@ class HomeViewModel(
 
     // ── ML prediction ─────────────────────────────────────────────────────────
 
+    /**
+     * Runs the adaptive ensemble (TFLite + Naive Bayes) on [title].
+     * Returns a safe fallback prediction on error so the UI never crashes.
+     */
     suspend fun predictCategoryEnsemble(title: String): EnsemblePrediction {
         return try {
             ensembleModel.predict(title)
         } catch (e: Exception) {
             Log.e("HomeViewModel", "Failed to predict category", e)
             EnsemblePrediction(
-                finalCategory = "Other",
+                finalCategory = "Egyéb",
                 confidence = 0.3,
                 tflitePrediction = null,
                 naiveBayesPrediction = null,
@@ -241,6 +301,13 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Records the user's final category choice after saving an expense.
+     *
+     * Triggers two side effects:
+     *   1. EMA weight adjustment + Naive Bayes training via [ensembleModel]
+     *   2. Correction stat update (AI suggestion vs. user choice) via [correctionRepository]
+     */
     fun recordCategoryChoice(
         title: String,
         ensemblePrediction: EnsemblePrediction,
@@ -335,6 +402,11 @@ class HomeViewModel(
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
+    /**
+     * Returns one Double per calendar day in [startDate]..[endDate].
+     * Zero-spend days are included so the forecast sees the full month shape.
+     * Epoch-millis dates are converted via the system default timezone.
+     */
     private fun getDailyTotalsForRange(
         expenses: List<Expense>,
         startDate: LocalDate,
@@ -344,7 +416,8 @@ class HomeViewModel(
         var curr = startDate
         while (!curr.isAfter(endDate)) {
             results.add(expenses.filter {
-                Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() == curr
+                Instant.ofEpochMilli(it.date)
+                    .atZone(ZoneId.systemDefault()).toLocalDate() == curr
                         && !it.isIncome
             }.sumOf { it.amount })
             curr = curr.plusDays(1)
@@ -352,6 +425,7 @@ class HomeViewModel(
         return results
     }
 
+    /** Same as [getDailyTotalsForRange] but filtered to a single [category]. */
     private fun getDailyTotalsForRangeByCategory(
         expenses: List<Expense>,
         startDate: LocalDate,
@@ -362,7 +436,8 @@ class HomeViewModel(
         var curr = startDate
         while (!curr.isAfter(endDate)) {
             results.add(expenses.filter {
-                Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate() == curr
+                Instant.ofEpochMilli(it.date)
+                    .atZone(ZoneId.systemDefault()).toLocalDate() == curr
                         && !it.isIncome
                         && it.category == category
             }.sumOf { it.amount })
