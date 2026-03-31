@@ -1,6 +1,6 @@
-# Walt 
+# Walt - Intelligens Személyes Pénzügyek 
 
-Személyes pénzügyi app on-device adaptív gépi tanulással
+Személyes pénzügyi mobilalkalmazás, on-device adaptív gépi tanulással
 
 ![Android](https://img.shields.io/badge/Android-API%2024+-3DDC84?logo=android&logoColor=white&style=flat-square)
 ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white&style=flat-square)
