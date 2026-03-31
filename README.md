@@ -5,17 +5,15 @@ Személyes pénzügyi app on-device adaptív gépi tanulással
 ![Android](https://img.shields.io/badge/Android-API%2024+-3DDC84?logo=android&logoColor=white&style=flat-square)
 ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white&style=flat-square)
 ![Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white&style=flat-square)
-![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 
 ---
 
 ## Képernyőképek
 
-|                                  |                                   |                                     |                                 |                                          |
-|:--------------------------------:|:---------------------------------:|:-----------------------------------:|:-------------------------------:|:----------------------------------------:|
-| ![Főoldal](screenshots/home.jpg) | ![Kiadás](screenshots/dialog.jpg) | ![Elemzések](screenshots/stats.jpg) | ![AI](screenshots/learning.jpg) | ![Beállítások](screenshots/settings.jpg) |
-|             Főoldal              |         Kiadás rögzítése          |              Elemzések              |           AI tanulás            |               Beállítások                |
-
+| | | | | |
+|:---:|:---:|:---:|:---:|:---:|
+| <img src="screenshots/home.jpg" width="150"> | <img src="screenshots/dialog.jpg" width="150"> | <img src="screenshots/stats.jpg" width="150"> | <img src="screenshots/learning.jpg" width="150"> | <img src="screenshots/settings.jpg" width="150"> |
+| Főoldal | Kiadás rögzítése | Elemzések | AI tanulás | Beállítások |
 ---
 
 ## Funkciók
@@ -52,7 +50,7 @@ A súlyok EMA alapján igazodnak a felhasználó döntéseihez (α=0.1, határok
 ## Futtatás
 
 ```bash
-git clone https://github.com/<user>/walt-finance-app.git
+git clone https://github.com/PtrMrc/personal-finance-app.git
 ```
 
 Android Studióban: **File → Open**, Gradle sync, majd **Run ▶**
