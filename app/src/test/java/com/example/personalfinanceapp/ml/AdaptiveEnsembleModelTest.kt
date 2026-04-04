@@ -166,7 +166,8 @@ class AdaptiveEnsembleModelTest {
 /** Implements TFLiteClassifierInterface directly — no Android context needed */
 class FakeTFLiteClassifier : TFLiteClassifierInterface {
     var nextPrediction: String = "Egyéb"
-    override fun classify(text: String): String = nextPrediction
+    override fun classify(text: String): Pair<String, Float> =
+        Pair(nextPrediction, 0.8f)
 }
 
 /** Implements NaiveBayesSource directly — no DAO or DB needed */

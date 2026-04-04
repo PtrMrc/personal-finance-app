@@ -5,5 +5,5 @@ package com.example.personalfinanceapp.ml
  * Allows the real ExpenseClassifier to be replaced with a fake in unit tests.
  */
 interface TFLiteClassifierInterface {
-    fun classify(text: String): String?
+    fun classify(text: String): Pair<String, Float>?
 }

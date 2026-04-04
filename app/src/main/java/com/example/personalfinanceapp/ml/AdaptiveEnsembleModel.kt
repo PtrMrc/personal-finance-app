@@ -134,16 +134,14 @@ class AdaptiveEnsembleModel(
      */
     private fun predictWithTFLite(title: String): ModelPrediction? {
         return try {
-            val category = tfliteClassifier.classify(title)
-            if (category != null) {
+            val result = tfliteClassifier.classify(title)
+            result?.let { (category, confidence) ->
                 ModelPrediction(
                     modelName = MODEL_TFLITE,
                     category = category,
-                    confidence = 0.8,  // TFLite doesn't return confidence, use default
-                    weight = 0.0  // Will be filled in later
+                    confidence = confidence.toDouble(),
+                    weight = 0.0
                 )
-            } else {
-                null
             }
         } catch (e: Exception) {
             logError("TFLite prediction failed", e)

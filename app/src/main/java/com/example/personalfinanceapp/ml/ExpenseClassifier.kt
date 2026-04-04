@@ -67,7 +67,7 @@ class ExpenseClassifier(private val context: Context) : TFLiteClassifierInterfac
         vocab = map
     }
 
-    override fun classify(text: String): String? {
+    override fun classify(text: String): Pair<String, Float>? {
         if (interpreter == null) return null
 
         val tokens = tokenize(text)
@@ -89,7 +89,8 @@ class ExpenseClassifier(private val context: Context) : TFLiteClassifierInterfac
         if (maxScore < confidenceThreshold) return null
 
         val englishCategory = englishCategories[maxIndex]
-        return categoryMapping[englishCategory] ?: englishCategory
+        val hungarianCategory = categoryMapping[englishCategory] ?: englishCategory
+        return Pair(hungarianCategory, maxScore)
     }
 
     private fun tokenize(text: String): IntArray {
