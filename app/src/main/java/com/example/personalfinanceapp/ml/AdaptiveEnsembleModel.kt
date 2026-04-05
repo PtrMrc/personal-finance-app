@@ -55,7 +55,7 @@ class AdaptiveEnsembleModel(
             val naiveBayesPred = naiveBayesDeferred.await()
 
             // Combine predictions using weighted voting
-            val finalPrediction = combineePredictions(
+            val finalPrediction = combinePredictions(
                 tflitePred,
                 naiveBayesPred,
                 weights
@@ -177,7 +177,7 @@ class AdaptiveEnsembleModel(
      * - If they disagree: use weighted average to decide
      * - Weight × Confidence = contribution to final decision
      */
-    private fun combineePredictions(
+    private fun combinePredictions(
         tflitePred: ModelPrediction?,
         naiveBayesPred: ModelPrediction?,
         weights: ModelWeights
